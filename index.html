@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Click The Monster (demo)</title>
+  <style>
+    /* Reset and Typography Setup */
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden; /* Lock scrollbars completely during rapid action */
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #0b0c10;
+      color: #ffffff;
+      user-select: none; /* Disables accidental text highlights while clicking fast */
+    }
+
+    /* Game Header UI HUD */
+    #hud {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 70px;
+      background: linear-gradient(to bottom, rgba(15,15,20,0.95), rgba(15,15,20,0.7));
+      border-bottom: 2px solid #ff4757;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 30px;
+      z-index: 10;
+    }
+    #game-title {
+      font-size: 1.5rem;
+      font-weight: 900;
+      letter-spacing: 3px;
+      color: #ff4757;
+      margin: 0;
+      text-transform: uppercase;
+      text-shadow: 0 0 10px rgba(255, 71, 87, 0.3);
+    }
+    .hud-stat {
+      font-size: 1.2rem;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 6px 16px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .hud-stat span {
+      color: #ff4757;
+      font-weight: 800;
+    }
+    #timer-display {
+      color: #2ed573;
+    }
+
+    /* Target Sprite Styles */
+    .target-sprite {
+      position: absolute;
+      width: 75px; 
+      height: 75px;
+      cursor: crosshair;
+      will-change: transform;
+      transition: filter 0.1s ease;
+    }
+    .target-sprite:hover {
+      filter: drop-shadow(0 0 15px #ff4757) brightness(1.2);
+    }
+
+    /* Overlays Base Styles */
+    .screen-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+    .screen-overlay.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    /* Milestone Break Screen (Flash Overlay) */
+    #milestone-screen {
+      background-color: rgba(255, 71, 87, 0.15);
+      backdrop-filter: blur(4px);
+    }
+    .milestone-box {
+      background: rgba(15, 15, 20, 0.95);
+      padding: 40px 60px;
+      border-radius: 12px;
+      border: 3px solid #ff4757;
+      text-align: center;
+      box-shadow: 0 0 40px rgba(255, 71, 87, 0.4);
+      transform: scale(0.9);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    #milestone-screen:not(.hidden) .milestone-box {
+      transform: scale(1);
+    }
+    .milestone-title {
+      color: #ff4757;
+      font-size: 2.5rem;
+      font-weight: 900;
+      margin: 0 0 10px 0;
+      letter-spacing: 2px;
+    }
+    .milestone-subtitle {
+      color: #ffffff;
+      font-size: 1.4rem;
+      margin: 0;
+    }
+
+    /* Final Victory Screen */
+    #victory-screen {
+      background-color: rgba(10, 12, 16, 0.95);
+    }
+    #victory-screen h2 {
+      font-size: 3.5rem;
+      margin: 0 0 10px 0;
+      text-transform: uppercase;
+      letter-spacing: 4px;
+      color: #2ed573;
+      text-shadow: 0 0 20px rgba(46,213,115,0.4);
+    }
+    #score-report {
+      font-size: 1.5rem;
+      color: #ffffff;
+      background: rgba(255,255,255,0.05);
+      padding: 15px 30px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1);
+      margin-bottom: 30px;
+    }
+    .action-btn {
+      background-color: #2ed573;
+      color: white;
+      border: none;
+      padding: 15px 40px;
+      font-size: 1.3rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(46, 213, 115, 0.4);
+      transition: transform 0.2s, background-color 0.2s;
+    }
+    .action-btn:hover {
+      background-color: #26af5f;
+      transform: translateY(-2px);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Heads Up Display -->
+  <div id="hud">
+    <h1 id="game-title">CLICK THE MONSTER</h1>
+    <div class="hud-stat">Monsters Left: <span id="counter-display">50</span></div>
+    <div class="hud-stat">Time: <span id="timer-display">0.0s</span></div>
+  </div>
+
+  <!-- Milestone Flash Screen Overlay -->
+  <div id="milestone-screen" class="screen-overlay hidden">
+    <div class="milestone-box">
+      <div class="milestone-title" id="milestone-text">10 DEFEATED!</div>
+      <div class="milestone-subtitle">⚠️ SPEED INCREASED ⚠️</div>
+    </div>
+  </div>
+
+  <!-- Final Victory Screen -->
+  <div id="victory-screen" class="screen-overlay hidden">
+    <h2>Victory Achieved!</h2>
+    <p id="score-report">Clear Time: 0.00 seconds</p>
+    <button class="action-btn" onclick="startGame()">Play Again</button>
+  </div>
+
+  <!-- Target Playground Container Area -->
+  <div id="play-field"></div>
+
+  <script>
+    const playField = document.getElementById('play-field');
+    const counterDisplay = document.getElementById('counter-display');
+    const timerDisplay = document.getElementById('timer-display');
+    const milestoneScreen = document.getElementById('milestone-screen');
+    const milestoneText = document.getElementById('milestone-text');
+    const victoryScreen = document.getElementById('victory-screen');
+    const scoreReport = document.getElementById('score-report');
+
+    const TOTAL_SPRITES = 50;
+    const SPRITE_SIZE = 75; 
+    const BASE_SPEED = 4;   
+
+    let spritesArray = [];
+    let activeCount = 0;
+    let startTime = 0;
+    let timerInterval = null;
+    let isGameRunning = false;
+
+    const IMG_SOURCE = "https://ftcdn.net";
+
+    function startGame() {
+      victoryScreen.classList.add('hidden');
+      milestoneScreen.classList.add('hidden');
+      playField.innerHTML = '';
+      spritesArray = [];
+      activeCount = TOTAL_SPRITES;
+      counterDisplay.textContent = activeCount;
+      
+      for(let i = 0; i < TOTAL_SPRITES; i++) {
+        const img = document.createElement('img');
+        img.src = IMG_SOURCE;
+        img.className = 'target-sprite';
+        playField.appendChild(img);
+
+        const startX = Math.random() * (window.innerWidth - SPRITE_SIZE);
+        const startY = 80 + (Math.random() * (window.innerHeight - SPRITE_SIZE - 80));
+
+        let vx = (Math.random() - 0.5) * BASE_SPEED * 2;
+        let vy = (Math.random() - 0.5) * BASE_SPEED * 2;
+
+        if (Math.abs(vx) < 1.5) vx = vx < 0 ? -2 : 2;
+        if (Math.abs(vy) < 1.5) vy = vy < 0 ? -2 : 2;
+
+        const spriteObject = {
+          element: img,
+          x: startX,
+          y: startY,
+          vx: vx,
+          vy: vy
+        };
+
+        img.addEventListener('mousedown', (e) => {
+          e.stopPropagation();
+          handleSpriteClick(spriteObject);
+        });
+
+        spritesArray.push(spriteObject);
+      }
+
+      startTime = performance.now();
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(updateTimerDisplay, 100);
+      isGameRunning = true;
+      
+      requestAnimationFrame(physicsEngineLoop);
+    }
+
+    function handleSpriteClick(clickedSprite) {
+      if (!isGameRunning) return;
+
+      clickedSprite.element.remove();
+      spritesArray = spritesArray.filter(item => item !== clickedSprite);
+      
+      activeCount--;
+      counterDisplay.textContent = activeCount;
+
+      spritesArray.forEach(sprite => {
+        sprite.vx *= 1.04;
+        sprite.vy *= 1.04;
+      });
+
+      const monstersDefeated = TOTAL_SPRITES - activeCount;
+      if (monstersDefeated > 0 && monstersDefeated % 10 === 0 && activeCount > 0) {
+        triggerMilestoneFlash(monstersDefeated);
+      }
+
+      if (activeCount <= 0) {
+        endGameVictory();
+      }
+    }
+
+    function triggerMilestoneFlash(countDefeated) {
+      milestoneText.textContent = `${countDefeated} MONSTERS DEFEATED!`;
+      milestoneScreen.classList.remove('hidden');
+
+      spritesArray.forEach(sprite => {
+        sprite.vx *= 1.25;
+        sprite.vy *= 1.25;
+      });
+
+      setTimeout(() => {
+        milestoneScreen.classList.add('hidden');
+      }, 800);
+    }
+
+    function updateTimerDisplay() {
+      const elapsed = (performance.now() - startTime) / 1000;
+      timerDisplay.textContent = elapsed.toFixed(1) + 's';
+    }
+
+    function physicsEngineLoop() {
+      if (!isGameRunning) return;
+
+      const rightWallLimit = window.innerWidth - SPRITE_SIZE;
+      const bottomWallLimit = window.innerHeight - SPRITE_SIZE;
+      const topWallLimit = 70; 
+
+      spritesArray.forEach(sprite => {
+        sprite.x += sprite.vx;
+        sprite.y += sprite.vy;
+
+        if (sprite.x >= rightWallLimit) {
+          sprite.x = rightWallLimit;
+          sprite.vx *= -1;
+        } else if (sprite.x <= 0) {
+          sprite.x = 0;
+          sprite.vx *= -1;
+        }
+
+        if (sprite.y >= bottomWallLimit) {
+          sprite.y = bottomWallLimit;
+          sprite.vy *= -1;
+        } else if (sprite.y <= topWallLimit) {
+          sprite.y = topWallLimit;
+          sprite.vy *= -1;
+        }
+
+        sprite.element.style.transform = `translate(${sprite.x}px, ${sprite.y}px)`;
+      });
+
+      requestAnimationFrame(physicsEngineLoop);
+    }
+
+    function endGameVictory() {
+      isGameRunning = false;
+      clearInterval(timerInterval);
+      
+      const totalTime = ((performance.now() - startTime) / 1000).toFixed(2);
+      scoreReport.innerHTML = `⏱️ Total Survival Time: <strong>${totalTime} seconds</strong>`;
+      
+      victoryScreen.classList.remove('hidden');
+    }
+
+    window.onload = startGame;
+  </script>
+</body>
+</html>
+
+
+
