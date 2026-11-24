@@ -164,4 +164,19 @@ window.addEventListener('DOMContentLoaded', () => {
       checkScrollNeeded();
     }, 80);
   }
+
+    // 5. Override Victory "Return To Menu" button so it opens the Start Menu instead of restarting
+  const restartBtn = document.getElementById('restart-btn');
+  if (restartBtn) {
+    const cleanBtn = restartBtn.cloneNode(true);
+    cleanBtn.textContent = 'Return To Menu';
+    restartBtn.parentNode.replaceChild(cleanBtn, restartBtn);
+
+    cleanBtn.addEventListener('click', () => {
+      document.getElementById('victory-screen').classList.add('hidden');
+      document.getElementById('start-screen').classList.remove('hidden');
+      if (typeof checkScrollNeeded === 'function') checkScrollNeeded();
+    });
+  }
+
 });
