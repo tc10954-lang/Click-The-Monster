@@ -18,9 +18,10 @@ const PET_CATALOG = [
 
 const CRATE_TIERS = [
   { id: 'bronze', name: '🥉 Bronze Crate', cost: 500,   color: '#cd7f32', weights: [70, 22, 7, 1] },
-  { id: 'gold',   name: '🥇 Gold Crate',   cost: 2500,  color: '#ffd32a', weights: [30, 45, 20, 5] },
-  { id: 'mythic', name: '💎 Mythic Crate', cost: 10000, color: '#00d2d3', weights: [5,  25, 45, 25] }
+  { id: 'gold',   name: '🥇 Gold Crate',   cost: 2500,  color: '#ffd32a', weights: [35, 42, 18, 5] },
+  { id: 'mythic', name: '💎 Mythic Crate', cost: 10000, color: '#00d2d3', weights: [10, 30, 40, 20] }
 ];
+
 
 function saveEndgame() {
   localStorage.setItem('monster_endgame_inf', JSON.stringify(endgameState.infinite));
@@ -99,10 +100,6 @@ window.addEventListener('DOMContentLoaded', () => {
     vaultModal.classList.add('hidden');
   });
 });
-// Ensure crate drop weights are properly initialized
-CRATE_TIERS[0].weights =;
-CRATE_TIERS[1].weights =;
-CRATE_TIERS[2].weights =;
 
 function renderVaultModal() {
   const playerCoins = typeof shopState !== 'undefined' ? shopState.coins : 0;
