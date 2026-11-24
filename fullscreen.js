@@ -1,13 +1,15 @@
-// --- Compact Menu Layout & Full-Screen Toggle ---
+// --- Compact Menu Layout, Full-Screen Toggle & Scroll Down Indicator ---
 window.addEventListener('DOMContentLoaded', () => {
   // 1. Tighten Start & Victory card spacing and arrange extra menu buttons into a clean 2-column grid
   const style = document.createElement('style');
   style.textContent = `
     #start-screen .card, #victory-screen .card {
+      position: relative;
       padding: 20px 26px !important;
       max-width: 560px !important;
-      max-height: 94vh;
+      max-height: 92vh;
       overflow-y: auto;
+      scroll-behavior: smooth;
     }
     #start-screen h2, #victory-screen h2 {
       font-size: 1.85rem !important;
@@ -65,12 +67,43 @@ window.addEventListener('DOMContentLoaded', () => {
       background: rgba(0, 210, 211, 0.28);
       transform: scale(1.03);
     }
+
+    /* Floating Down Arrow Indicator */
+    @keyframes bounceArrow {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(5px); }
+    }
+    .scroll-down-hint {
+      position: fixed;
+      right: max(18px, calc(50vw - 270px));
+      bottom: 24px;
+      background: rgba(255, 165, 2, 0.92);
+      color: #07080c;
+      font-weight: 900;
+      font-size: 0.85rem;
+      padding: 8px 14px;
+      border-radius: 50px;
+      box-shadow: 0 4px 18px rgba(255, 165, 2, 0.5);
+      border: 2px solid #fff;
+      cursor: pointer;
+      z-index: 115;
+      display: none;
+      align-items: center;
+      gap: 5px;
+      animation: bounceArrow 1s infinite ease-in-out;
+      transition: opacity 0.25s ease;
+    }
+    .scroll-down-hint.visible {
+      display: flex;
+    }
   `;
   document.head.appendChild(style);
 
   // 2. Add the "⛶ Go On Full-Screen!" pill button at the top of the Start Menu
+  const startScreen = document.getElementById('start-screen');
   const startCard = document.querySelector('#start-screen .card');
-  if (startCard) {
+
+  if (startCard && startScreen) {
     const fsBtn = document.createElement('button');
     fsBtn.id = 'fullscreen-banner-btn';
     fsBtn.innerHTML = '⛶ Go On Full-Screen!';
@@ -97,7 +130,27 @@ window.addEventListener('DOMContentLoaded', () => {
 
     startCard.insertBefore(fsBtn, startCard.firstChild);
 
-    // 3. Group the extra menu buttons (Shop, Trophies, Crosshairs, Career) into a neat 2x2 grid
+    // 3. Create Bouncing Down Arrow Indicator on the side of the Start Screen
+    const scrollHint = document.createElement('button');
+    scrollHint.className = 'scroll-down-hint';
+    scrollHint.innerHTML = '⬇️ More';
+    scrollHint.title = 'Scroll down for Shop, Trophies & Career';
+    startScreen.appendChild(scrollHint);
+
+    scrollHint.addEventListener('click', () => {
+      startCard.scrollTo({ top: startCard.scrollHeight, behavior: 'smooth' });
+    });
+
+    function checkScrollNeeded() {
+      const canScroll = startCard.scrollHeight > startCard.clientHeight + 8;
+      const atBottom = startCard.scrollTop + startCard.clientHeight >= startCard.scrollHeight - 12;
+      scrollHint.classList.toggle('visible', canScroll && !atBottom);
+    }
+
+    startCard.addEventListener('scroll', checkScrollNeeded);
+    window.addEventListener('resize', checkScrollNeeded);
+
+    // 4. Group the extra menu buttons (Shop, Trophies, Crosshairs, Career) into a neat 2x2 grid
     setTimeout(() => {
       const extraBtns = Array.from(startCard.querySelectorAll('.action-btn'))
         .filter(b => b.id !== 'start-btn' && b.id !== 'endless-start-btn');
@@ -108,6 +161,7 @@ window.addEventListener('DOMContentLoaded', () => {
         extraBtns.forEach(btn => grid.appendChild(btn));
         startCard.appendChild(grid);
       }
-    }, 50);
+      checkScrollNeeded();
+    }, 80);
   }
 });
