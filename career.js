@@ -261,3 +261,55 @@ endGameVictory = function() {
   saveCareerData();
   _careerOrigVictory();
 };
+
+// --- Rebirth & XP Progression Rebalance (Scaling Level Caps + 70% XP Nerf) ---
+function getRequiredRebirthLevel() {
+  return 10 + (careerData.rebirths * 5);
+}
+
+// 1. Nerf XP gain by 70% so one Hellfire run won't jump 10 levels at once
+if (typeof addCoinsAndXP === 'function') {
+  const _rebalOrigCoinsXP = addCoinsAndXP;
+  addCoinsAndXP = function(coinAmt, xpAmt) {
+    const nerfedXP = Math.max(1, Math.round(xpAmt * 0.30));
+    _rebalOrigCoinsXP(coinAmt, nerfedXP);
+  };
+}
+
+// 2. Enforce Scaling Level Requirement (Lv. 10 -> 15 -> 20 -> 25...) in Career Modal
+if (typeof renderCareerModal === 'function') {
+  const _rebalOrigRenderCareer = renderCareerModal;
+  renderCareerModal = function() {
+    _rebalOrigRenderCareer();
+
+    const rebirthBtn = document.getElementById('do-rebirth-btn');
+    if (!rebirthBtn) return;
+
+    const reqLvl = getRequiredRebirthLevel();
+    const currentLvl = typeof shopState !== 'undefined' ? shopState.level : 1;
+    const canRebirth = currentLvl >= reqLvl;
+
+    if (canRebirth) {
+      rebirthBtn.style.background = 'linear-gradient(135deg, #ff9ff3, #a55eea)';
+      rebirthBtn.style.color = '#07080c';
+      rebirthBtn.style.cursor = 'pointer';
+      rebirthBtn.textContent = `👑 Rebirth to Tier ${careerData.rebirths + 1} (+50% Multiplier & +1 🔮)`;
+      rebirthBtn.onclick = performOptionalRebirth;
+    } else {
+      rebirthBtn.style.background = 'rgba(255,255,255,0.08)';
+      rebirthBtn.style.color = '#747d8c';
+      rebirthBtn.style.cursor = 'not-allowed';
+      rebirthBtn.textContent = `🔒 Reach Hunter Level ${reqLvl} to Rebirth (Current: Lv.${currentLvl})`;
+      rebirthBtn.onclick = null;
+    }
+  };
+}
+
+// 3. Guard performOptionalRebirth so it checks the scaling requirement too
+const _rebalOrigPerformRebirth = performOptionalRebirth;
+performOptionalRebirth = function() {
+  const reqLvl = getRequiredRebirthLevel();
+  if (typeof shopState === 'undefined' || shopState.level < reqLvl) return;
+  _rebalOrigPerformRebirth();
+};
+
