@@ -1,4 +1,4 @@
-// --- Local Top 10 Arcade Leaderboard with AI Rivals & 3-Letter Initials ---
+// --- Local Top 10 Arcade Leaderboard with AI Rivals & Rank-Up Banners ---
 const AI_RIVALS_BASE = {
   easy: [
     { name: 'REX', time: 11.40, isAI: true },
@@ -54,6 +54,7 @@ const AI_RIVALS_BASE = {
 
 let savedTag = localStorage.getItem('monster_player_tag') || 'YOU';
 let viewBoardDiff = 'normal';
+let rankBannerTimeout = null;
 
 function getLeaderboard(diff) {
   const key = `monster_top10_${diff}`;
@@ -65,22 +66,84 @@ function getLeaderboard(diff) {
   return initial;
 }
 
+function getBestPlayerRank(diff) {
+  const board = getLeaderboard(diff);
+  const idx = board.findIndex(e => !e.isAI);
+  return idx === -1 ? 11 : idx + 1;
+}
+
+function showRankUpBanner(titleText, subText) {
+  const banner = document.getElementById('rank-up-banner');
+  if (!banner) return;
+
+  document.getElementById('rank-banner-title').textContent = titleText;
+  document.getElementById('rank-banner-sub').textContent = subText;
+
+  banner.classList.add('show');
+  clearTimeout(rankBannerTimeout);
+  rankBannerTimeout = setTimeout(() => {
+    banner.classList.remove('show');
+  }, 2600);
+}
+
 function saveLeaderboardScore(diff, name, timeVal) {
   const cleanName = (name || 'YOU').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3) || 'YOU';
   savedTag = cleanName;
   localStorage.setItem('monster_player_tag', cleanName);
 
+  const prevRank = getBestPlayerRank(diff);
   const board = getLeaderboard(diff);
-  board.push({ name: cleanName, time: parseFloat(timeVal.toFixed(2)), isAI: false });
+  const cleanTime = parseFloat(timeVal.toFixed(2));
+
+  board.push({ name: cleanName, time: cleanTime, isAI: false });
   board.sort((a, b) => a.time - b.time);
   const top10 = board.slice(0, 10);
 
   localStorage.setItem(`monster_top10_${diff}`, JSON.stringify(top10));
+
+  const newRank = top10.findIndex(e => !e.isAI && e.name === cleanName && e.time === cleanTime) + 1;
+  if (newRank > 0) {
+    if (newRank < prevRank) {
+      showRankUpBanner(`🏅 RANK UP! NOW #${newRank}`, `Moved up on ${diff.toUpperCase()} Leaderboard!`);
+    } else {
+      showRankUpBanner(`🏅 PLACED #${newRank} ON BOARD!`, `${cleanName} — ${cleanTime.toFixed(2)}s`);
+    }
+  }
   return top10;
 }
-
 window.addEventListener('DOMContentLoaded', () => {
-  // 1. Add "🏅 Top 10 Board" Button to Start Screen
+  // 1. Inject Rank-Up Banner (Top-Left, so it never overlaps Achievement banners on Top-Right)
+  const banner = document.createElement('div');
+  banner.id = 'rank-up-banner';
+  banner.innerHTML = `
+    <div style="font-size: 1.7rem;">🏅</div>
+    <div style="text-align: left;">
+      <div id="rank-banner-title" style="font-size: 0.95rem; font-weight: 900; color: #ff9f43; letter-spacing: 0.5px;">RANK UP!</div>
+      <div id="rank-banner-sub" style="font-size: 0.78rem; color: #fff;">You moved up on the leaderboard!</div>
+    </div>
+  `;
+  document.body.appendChild(banner);
+
+  const style = document.createElement('style');
+  style.textContent = `
+    #rank-up-banner {
+      position: fixed; top: 82px; left: 24px;
+      display: flex; align-items: center; gap: 10px;
+      background: rgba(14, 16, 26, 0.96);
+      border: 2px solid #ff9f43;
+      box-shadow: 0 8px 28px rgba(255, 159, 67, 0.35);
+      padding: 10px 16px; border-radius: 14px;
+      z-index: 96; pointer-events: none;
+      opacity: 0; transform: translateX(-120%);
+      transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.25s ease;
+    }
+    #rank-up-banner.show {
+      opacity: 1; transform: translateX(0);
+    }
+  `;
+  document.head.appendChild(style);
+
+  // 2. Add "🏅 Top 10 Board" Button to Start Screen
   const startCard = document.querySelector('#start-screen .card');
   if (startCard) {
     const lbBtn = document.createElement('button');
@@ -101,7 +164,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // 2. Build Top 10 Leaderboard Modal
+  // 3. Build Top 10 Leaderboard Modal
   const lbModal = document.createElement('div');
   lbModal.id = 'lb-modal';
   lbModal.className = 'screen-overlay hidden';
@@ -137,7 +200,7 @@ window.addEventListener('DOMContentLoaded', () => {
     lbModal.classList.add('hidden');
   });
 
-  // 3. Inject 3-Letter Initials Entry Box onto Victory Screen
+  // 4. Inject 3-Letter Initials Entry Box onto Victory Screen
   const victoryCard = document.querySelector('#victory-screen .card');
   const statsGrid = document.querySelector('#victory-screen .stats-grid');
   if (victoryCard && statsGrid) {
@@ -203,7 +266,7 @@ function renderLeaderboardModal() {
   }).join('');
 }
 
-// --- Hook Victory Screen to Check Top 10 Qualification ---
+// --- Hook Victory Screen to Check Top 10 Qualification & Trigger Rank-Up Banner ---
 const _lbOrigVictory = endGameVictory;
 endGameVictory = function() {
   _lbOrigVictory();
@@ -211,6 +274,15 @@ endGameVictory = function() {
   const finalSeconds = (performance.now() - startTime) / 1000;
   const board = getLeaderboard(currentDiff);
   const tenthPlaceTime = board.length >= 10 ? board[board.length - 1].time : Infinity;
+  const prevBestRank = getBestPlayerRank(currentDiff);
+
+  const projectedRank = board.filter(e => e.time <= finalSeconds).length + 1;
+
+  if (projectedRank <= 10 && projectedRank < prevBestRank) {
+    showRankUpBanner(`🏅 RANK UP! #${projectedRank}`, `You moved up on the leaderboard!`);
+  } else if (projectedRank <= 10) {
+    showRankUpBanner(`🏅 TOP 10 FINISH (#${projectedRank})`, `Enter your initials to claim it!`);
+  }
 
   const entryBox = document.getElementById('lb-entry-box');
   const tagInput = document.getElementById('lb-tag-input');
