@@ -4,6 +4,7 @@ class SoundFX {
     this.muted = false;
     this.bgmInterval = null;
     this.step = 0;
+    this.isBossMusic = false;
   }
 
   init() {
@@ -16,7 +17,7 @@ class SoundFX {
   }
 
   playTone(freq, type, duration, vol = 0.15, slideFreq = null) {
-    if (this.muted) return;
+    if (this.muted || !freq) return;
     this.init();
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -33,7 +34,7 @@ class SoundFX {
     osc.stop(this.ctx.currentTime + duration);
   }
 
-  playNoise(duration, vol = 0.15) {
+  playNoise(duration, vol = 0.15, filterType = 'lowpass', freq = 1000) {
     if (this.muted) return;
     this.init();
     const bufferSize = this.ctx.sampleRate * duration;
@@ -47,9 +48,8 @@ class SoundFX {
     noise.buffer = buffer;
 
     const filter = this.ctx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(1000, this.ctx.currentTime);
-    filter.frequency.exponentialRampToValueAtTime(100, this.ctx.currentTime + duration);
+    filter.type = filterType;
+    filter.frequency.setValueAtTime(freq, this.ctx.currentTime);
 
     const gain = this.ctx.createGain();
     gain.gain.setValueAtTime(vol, this.ctx.currentTime);
@@ -61,17 +61,42 @@ class SoundFX {
     noise.start();
   }
 
-  startMusic() {
+  // --- Multi-Track Arcade Sequencer ---
+  startMusic(bossMode = false) {
     this.stopMusic();
     this.init();
-    const bassline = [110, 110, 130.81, 146.83, 110, 110, 164.81, 146.83];
+    this.isBossMusic = bossMode;
     this.step = 0;
+
+    // 16-step A-minor arcade loop
+    const normalBass = [110, 0, 110, 130.81, 146.83, 0, 130.81, 98, 110, 0, 110, 164.81, 146.83, 130.81, 98, 0];
+    const normalLead = [440, 0, 523.25, 0, 659.25, 587.33, 523.25, 0, 493.88, 0, 523.25, 587.33, 659.25, 0, 392, 0];
+
+    // Faster, darker D-minor Boss theme
+    const bossBass   = [73.42, 73.42, 87.31, 73.42, 98, 73.42, 110, 98, 73.42, 73.42, 87.31, 73.42, 116.54, 110, 87.31, 82.41];
+    const bossLead   = [293.66, 349.23, 440, 0, 466.16, 440, 349.23, 0, 329.63, 392, 493.88, 0, 587.33, 523.25, 466.16, 440];
+
+    const tempoMs = bossMode ? 125 : 165;
+
     this.bgmInterval = setInterval(() => {
       if (this.muted) return;
-      const note = bassline[this.step % bassline.length];
-      this.playTone(note, 'triangle', 0.16, 0.05);
+      const idx = this.step % 16;
+
+      // Bass track
+      const bassNote = bossMode ? bossBass[idx] : normalBass[idx];
+      if (bassNote) this.playTone(bassNote, 'triangle', 0.14, 0.055);
+
+      // Lead melody track
+      const leadNote = bossMode ? bossLead[idx] : normalLead[idx];
+      if (leadNote) this.playTone(leadNote, 'square', 0.12, 0.025);
+
+      // Percussion (Kick on 0,4,8,12 | Snare on 4,12 | Hi-hat on off-beats)
+      if (idx % 4 === 0) this.playTone(95, 'sine', 0.09, 0.08, 35);
+      if (idx === 4 || idx === 12) this.playNoise(0.08, 0.045, 'highpass', 800);
+      if (idx % 2 === 1) this.playNoise(0.03, 0.018, 'highpass', 5000);
+
       this.step++;
-    }, 220);
+    }, tempoMs);
   }
 
   stopMusic() {
@@ -81,6 +106,7 @@ class SoundFX {
     }
   }
 
+  // --- Sound Effects ---
   hit(combo) {
     const pitch = Math.min(280 + combo * 24, 920);
     this.playTone(pitch, 'square', 0.11, 0.12, pitch * 1.45);
@@ -114,6 +140,7 @@ class SoundFX {
   bossSpawn() {
     this.playTone(110, 'sawtooth', 0.6, 0.22, 48);
     this.playNoise(0.45, 0.18);
+    this.startMusic(true); // Automatically switches to fast Boss Battle theme!
   }
 
   victory() {
