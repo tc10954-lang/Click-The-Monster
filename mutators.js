@@ -24,18 +24,18 @@ window.addEventListener('DOMContentLoaded', () => {
   darkLayer.id = 'flashlight-overlay';
   darkLayer.style.cssText = `
     position: fixed; inset: 0; pointer-events: none; z-index: 34; display: none;
-    background: radial-gradient(circle 125px at 50% 50%, transparent 0%, rgba(4, 5, 10, 0.96) 100%);
+    background: radial-gradient(circle 130px at 50% 50%, transparent 0%, rgba(4, 5, 10, 0.96) 100%);
   `;
   document.body.appendChild(darkLayer);
 
   window.addEventListener('mousemove', (e) => {
     if (!activeMutators.flashlight || !isGameRunning) return;
-    darkLayer.style.background = `radial-gradient(circle 125px at ${e.clientX}px ${e.clientY}px, transparent 0%, rgba(4, 5, 10, 0.96) 100%)`;
+    darkLayer.style.background = `radial-gradient(circle 130px at ${e.clientX}px ${e.clientY}px, transparent 0%, rgba(4, 5, 10, 0.96) 100%)`;
   });
 
   window.addEventListener('touchmove', (e) => {
-    if (!activeMutators.flashlight || !isGameRunning || !e.touches || !e.touches[0]) return;
-    const t = e.touches[0];
+    if (!activeMutators.flashlight || !isGameRunning || !e.touches || e.touches.length === 0) return;
+    const t = e.touches.item(0);
     darkLayer.style.background = `radial-gradient(circle 145px at ${t.clientX}px ${t.clientY}px, transparent 0%, rgba(4, 5, 10, 0.96) 100%)`;
   });
 
@@ -58,7 +58,7 @@ window.addEventListener('DOMContentLoaded', () => {
     mutSection.innerHTML = `
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
         <span style="font-size: 0.75rem; font-weight: 900; color: #e056fd; letter-spacing: 0.5px;">🎲 CHAOS MUTATORS</span>
-        <span id="mut-bonus-label" style="font-size: 0.72rem; font-weight: 800; color: #2ed573;">+0% Coins & XP</span>
+        <span id="mut-bonus-label" style="font-size: 0.72rem; font-weight: 800; color: #2ed573;">Optional (+35% ea)</span>
       </div>
       <div id="inline-mut-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;"></div>
     `;
@@ -103,7 +103,8 @@ function renderInlineMutators() {
   }).join('');
 
   grid.querySelectorAll('.inline-mut-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
       const id = btn.dataset.id;
       activeMutators[id] = !activeMutators[id];
       renderInlineMutators();
@@ -111,9 +112,54 @@ function renderInlineMutators() {
   });
 }
 
-// --- Gameplay Hooks for Active Mutators ---
+// --- Reliable Real-Time Mutator Engine (Works across ALL 3 Game Modes!) ---
+let mutatorTick = 0;
+let mutatorCursor = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
 
-// 1. Mitosis: Split Tanks into 2 fast mini-grunts on defeat
+window.addEventListener('mousemove', (e) => {
+  mutatorCursor.x = e.clientX;
+  mutatorCursor.y = e.clientY;
+});
+
+setInterval(() => {
+  const darkLayer = document.getElementById('flashlight-overlay');
+
+  // Automatically show/hide Flashlight based on whether a game is actively running
+  if (darkLayer) {
+    const shouldShowDark = isGameRunning && activeMutators.flashlight;
+    darkLayer.style.display = shouldShowDark ? 'block' : 'none';
+  }
+
+  if (!isGameRunning || isFrozen) return;
+  mutatorTick++;
+
+  // 1. Evasive AI: Monsters dodge away when cursor gets within 110px
+  if (activeMutators.evasive) {
+    monsters.forEach(m => {
+      const cx = m.x + m.size / 2;
+      const cy = m.y + m.size / 2;
+      const dx = cx - mutatorCursor.x;
+      const dy = cy - mutatorCursor.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist < 110 && dist > 1) {
+        m.x = Math.min(Math.max(0, m.x + (dx / dist) * 6.5), window.innerWidth - m.size);
+        m.y = Math.min(Math.max(72, m.y + (dy / dist) * 6.5), window.innerHeight - m.size);
+      }
+    });
+  }
+
+  // 2. Chaos Bounce: Every 2 seconds, randomly redirect all monsters
+  if (activeMutators.chaos && mutatorTick % 40 === 0) {
+    monsters.forEach(m => {
+      const speed = Math.hypot(m.vx, m.vy);
+      const newAngle = Math.random() * Math.PI * 2;
+      m.vx = Math.cos(newAngle) * speed;
+      m.vy = Math.sin(newAngle) * speed;
+    });
+  }
+}, 50);
+
+// 3. Mitosis: Split Tanks into 2 fast mini-grunts on defeat
 const _mutOrigDefeat = defeatMonster;
 defeatMonster = function(monster, clickX, clickY) {
   const wasTank = monster.type === 'tank';
@@ -126,7 +172,7 @@ defeatMonster = function(monster, clickX, clickY) {
     const config = DIFFICULTIES[currentDiff];
     for (let i = 0; i < 2; i++) {
       spawnMonster(config, 'grunt');
-      const baby = monsters[monsters.length - 1];
+      const baby = monsters.at(-1);
       if (baby) {
         baby.size = 46;
         baby.el.style.width = '46px';
@@ -138,55 +184,14 @@ defeatMonster = function(monster, clickX, clickY) {
       }
     }
     activeCount += 2;
-    counterDisplay.textContent = typeof extraModes !== 'undefined' && extraModes.isEndless
+    counterDisplay.textContent = (typeof extraModes !== 'undefined' && extraModes.isEndless)
       ? `${monsters.length} / ${extraModes.maxOverrun}`
       : activeCount;
     spawnFloatingText(clickX, clickY - 14, '🧬 SPLIT!', '#e056fd');
   }
 };
 
-// 2. Evasive AI & Chaos Bounce Loops
-let mutatorLoop = null;
-function startMutatorEffects() {
-  clearInterval(mutatorLoop);
-  const darkLayer = document.getElementById('flashlight-overlay');
-  if (darkLayer) {
-    darkLayer.style.display = activeMutators.flashlight ? 'block' : 'none';
-  }
-
-  let tick = 0;
-  mutatorLoop = setInterval(() => {
-    if (!isGameRunning || isFrozen) return;
-    tick++;
-
-    // Evasive AI: Dodge away if cursor gets within 95px
-    if (activeMutators.evasive && typeof mousePos !== 'undefined') {
-      monsters.forEach(m => {
-        const cx = m.x + m.size / 2;
-        const cy = m.y + m.size / 2;
-        const dx = cx - mousePos.x;
-        const dy = cy - mousePos.y;
-        const dist = Math.hypot(dx, dy);
-        if (dist < 95 && dist > 1) {
-          m.x += (dx / dist) * 5.5;
-          m.y += (dy / dist) * 5.5;
-        }
-      });
-    }
-
-    // Chaos Bounce: Every 2.5 seconds, randomize velocity angles
-    if (activeMutators.chaos && tick % 50 === 0) {
-      monsters.forEach(m => {
-        const speed = Math.hypot(m.vx, m.vy);
-        const newAngle = Math.random() * Math.PI * 2;
-        m.vx = Math.cos(newAngle) * speed;
-        m.vy = Math.sin(newAngle) * speed;
-      });
-    }
-  }, 50);
-}
-
-// 3. Apply +35% Coin & XP Bonus per Active Mutator
+// 4. Apply +35% Coin & XP Bonus per Active Mutator
 if (typeof addCoinsAndXP === 'function') {
   const _mutOrigCoins = addCoinsAndXP;
   addCoinsAndXP = function(coinAmt, xpAmt) {
@@ -194,18 +199,3 @@ if (typeof addCoinsAndXP === 'function') {
     _mutOrigCoins(Math.round(coinAmt * mult), Math.round(xpAmt * mult));
   };
 }
-
-// 4. Activate / Cleanup Flashlight on Game Start & End
-const _mutOrigStart = startGame;
-startGame = function() {
-  _mutOrigStart();
-  startMutatorEffects();
-};
-
-const _mutOrigVictory = endGameVictory;
-endGameVictory = function() {
-  const darkLayer = document.getElementById('flashlight-overlay');
-  if (darkLayer) darkLayer.style.display = 'none';
-  clearInterval(mutatorLoop);
-  _mutOrigVictory();
-};
