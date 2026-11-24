@@ -1,79 +1,3 @@
-// --- Zero-Dependency Web Audio Synthesizer ---
-class SoundFX {
-  constructor() {
-    this.ctx = null;
-    this.muted = false;
-  }
-
-  init() {
-    if (!this.ctx) {
-      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if (this.ctx.state === 'suspended') {
-      this.ctx.resume();
-    }
-  }
-
-  playTone(freq, type, duration, vol = 0.15, slideFreq = null) {
-    if (this.muted) return;
-    this.init();
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-    if (slideFreq) {
-      osc.frequency.exponentialRampToValueAtTime(slideFreq, this.ctx.currentTime + duration);
-    }
-    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start();
-    osc.stop(this.ctx.currentTime + duration);
-  }
-
-  hit(combo) {
-    const pitch = Math.min(280 + combo * 24, 920);
-    this.playTone(pitch, 'square', 0.11, 0.12, pitch * 1.45);
-  }
-
-  armorHit() {
-    this.playTone(160, 'sawtooth', 0.1, 0.15, 95);
-  }
-
-  miss() {
-    this.playTone(115, 'triangle', 0.14, 0.1, 60);
-  }
-
-  milestone() {
-    this.playTone(440, 'sine', 0.14, 0.16);
-    setTimeout(() => this.playTone(587.33, 'sine', 0.24, 0.16), 95);
-  }
-
-  powerup() {
-    this.playTone(523.25, 'sine', 0.1, 0.15);
-    setTimeout(() => this.playTone(783.99, 'sine', 0.12, 0.15), 70);
-    setTimeout(() => this.playTone(1046.5, 'sine', 0.2, 0.15), 140);
-  }
-
-  bomb() {
-    this.playTone(130, 'sawtooth', 0.4, 0.22, 32);
-  }
-
-  bossSpawn() {
-    this.playTone(110, 'sawtooth', 0.5, 0.2, 55);
-  }
-
-  victory() {
-    const notes = [523.25, 659.25, 783.99, 1046.50];
-    notes.forEach((n, i) => {
-      setTimeout(() => this.playTone(n, 'triangle', 0.3, 0.18), i * 110);
-    });
-  }
-}
-
-const sfx = new SoundFX();
-
 // --- Custom SVG Monster Sprites ---
 function getMonsterSVG(type) {
   if (type === 'boss') {
@@ -182,7 +106,7 @@ playField.addEventListener('mousedown', (e) => {
   sfx.miss();
 });
 function startGame() {
-  sfx.init();
+  sfx.init(); sfx.startMusic(false);
   const config = DIFFICULTIES[currentDiff];
 
   startScreen.classList.add('hidden');
