@@ -34,87 +34,79 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   window.addEventListener('touchmove', (e) => {
-    if (!activeMutators.flashlight || !isGameRunning || !e.touches[0]) return;
+    if (!activeMutators.flashlight || !isGameRunning || !e.touches || !e.touches[0]) return;
     const t = e.touches[0];
     darkLayer.style.background = `radial-gradient(circle 145px at ${t.clientX}px ${t.clientY}px, transparent 0%, rgba(4, 5, 10, 0.96) 100%)`;
   });
 
-  // 2. Add "🎲 Chaos Mutators" Button to Start Menu
+  // 2. Inject Inline Chaos Mutators Selector right above "Standard Hunt"
   const startCard = document.querySelector('#start-screen .card');
-  if (startCard) {
-    const mutBtn = document.createElement('button');
-    mutBtn.id = 'open-mutators-btn';
-    mutBtn.className = 'action-btn';
-    mutBtn.innerHTML = '🎲 Chaos Mutators (0 Active)';
-    mutBtn.style.cssText = 'background: linear-gradient(135deg, #e056fd, #be2edd); color: #fff;';
-    mutBtn.addEventListener('click', () => {
-      renderMutatorModal();
-      document.getElementById('mutator-modal').classList.remove('hidden');
-    });
+  const startBtn = document.getElementById('start-btn');
 
-    const extrasGrid = document.getElementById('menu-extras-grid');
-    if (extrasGrid) {
-      extrasGrid.appendChild(mutBtn);
-    } else {
-      startCard.appendChild(mutBtn);
-    }
+  if (startCard && startBtn) {
+    const mutSection = document.createElement('div');
+    mutSection.id = 'inline-mutators-box';
+    mutSection.style.cssText = `
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(224, 86, 253, 0.35);
+      border-radius: 10px;
+      padding: 8px 10px;
+      margin-bottom: 12px;
+      text-align: left;
+    `;
+
+    mutSection.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <span style="font-size: 0.75rem; font-weight: 900; color: #e056fd; letter-spacing: 0.5px;">🎲 CHAOS MUTATORS</span>
+        <span id="mut-bonus-label" style="font-size: 0.72rem; font-weight: 800; color: #2ed573;">+0% Coins & XP</span>
+      </div>
+      <div id="inline-mut-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;"></div>
+    `;
+
+    startCard.insertBefore(mutSection, startBtn);
+    renderInlineMutators();
   }
-
-  // 3. Build Mutators Selection Modal
-  const modal = document.createElement('div');
-  modal.id = 'mutator-modal';
-  modal.className = 'screen-overlay hidden';
-  modal.style.zIndex = '134';
-  modal.innerHTML = `
-    <div class="card" style="max-width: 520px;">
-      <h2 style="color: #e056fd; margin: 0 0 6px 0; font-size: 1.8rem;">🎲 Chaos Mutators</h2>
-      <p class="subtitle" style="margin-bottom: 14px;">
-        Toggle modifiers to make hunts harder! Current Bonus: <b id="mut-bonus-label" style="color:#2ed573;">+0% Coins & XP</b>
-      </p>
-      <div id="mut-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; text-align: left;"></div>
-      <button class="action-btn" id="close-mut-btn" style="background: linear-gradient(135deg, #2ed573, #1eae58); color: #07080c;">Confirm Mutators</button>
-    </div>
-  `;
-  document.body.appendChild(modal);
-
-  document.getElementById('close-mut-btn').addEventListener('click', () => {
-    modal.classList.add('hidden');
-  });
 });
 
-function renderMutatorModal() {
-  const grid = document.getElementById('mut-grid');
+function renderInlineMutators() {
+  const grid = document.getElementById('inline-mut-grid');
   const bonusLabel = document.getElementById('mut-bonus-label');
   if (!grid) return;
 
   const activeCount = Object.values(activeMutators).filter(Boolean).length;
-  if (bonusLabel) bonusLabel.textContent = `+${activeCount * 35}% Coins & XP`;
+  if (bonusLabel) {
+    bonusLabel.textContent = activeCount > 0 ? `+${activeCount * 35}% Coins & XP` : 'Optional (+35% ea)';
+    bonusLabel.style.color = activeCount > 0 ? '#2ed573' : '#a4b0be';
+  }
 
   grid.innerHTML = MUTATOR_LIST.map(m => {
     const isOn = activeMutators[m.id];
     return `
-      <div class="mut-card" data-id="${m.id}" style="
-        background: ${isOn ? 'rgba(224, 86, 253, 0.2)' : 'rgba(255, 255, 255, 0.05)'};
-        border: 2px solid ${isOn ? '#e056fd' : 'rgba(255, 255, 255, 0.12)'};
-        border-radius: 12px; padding: 12px; cursor: pointer; transition: all 0.15s;
+      <button type="button" class="inline-mut-btn" data-id="${m.id}" title="${m.desc}" style="
+        background: ${isOn ? 'rgba(224, 86, 253, 0.28)' : 'rgba(255, 255, 255, 0.05)'};
+        border: 1.5px solid ${isOn ? '#e056fd' : 'rgba(255, 255, 255, 0.14)'};
+        border-radius: 8px;
+        padding: 6px 4px;
+        color: #fff;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        transition: all 0.15s;
+        box-shadow: ${isOn ? '0 0 10px rgba(224, 86, 253, 0.35)' : 'none'};
       ">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-          <span style="font-weight:900; font-size:0.95rem; color:#fff;">${m.icon} ${m.name}</span>
-          <span style="font-size:0.72rem; font-weight:900; color:${isOn ? '#2ed573' : '#747d8c'};">${isOn ? 'ON' : 'OFF'}</span>
-        </div>
-        <div style="font-size:0.76rem; color:#ced6e0;">${m.desc}</div>
-      </div>
+        <span style="font-size: 1rem;">${m.icon}</span>
+        <span style="font-size: 0.66rem; font-weight: 800; color: ${isOn ? '#fff' : '#ced6e0'};">${m.name}</span>
+      </button>
     `;
   }).join('');
 
-  grid.querySelectorAll('.mut-card').forEach(card => {
-    card.addEventListener('click', () => {
-      const id = card.dataset.id;
+  grid.querySelectorAll('.inline-mut-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
       activeMutators[id] = !activeMutators[id];
-      const count = Object.values(activeMutators).filter(Boolean).length;
-      const btn = document.getElementById('open-mutators-btn');
-      if (btn) btn.innerHTML = `🎲 Chaos Mutators (${count} Active)`;
-      renderMutatorModal();
+      renderInlineMutators();
     });
   });
 }
