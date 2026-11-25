@@ -129,5 +129,23 @@
   <script src="crosshairs_expanded.js"></script>
  <script src="more_achievements.js"></script>
   <script src="story_mode.js"></script>
+
+    <script>
+    setTimeout(() => {
+      const startBtn = document.getElementById('start-btn');
+      const storyBtn = [...document.querySelectorAll('button')].find(b =>
+        b.textContent.includes('STORY MODE')
+      );
+      if (startBtn && storyBtn && startBtn.parentNode) {
+        storyBtn.style.width = '100%';
+        storyBtn.style.marginTop = '8px';
+        storyBtn.style.marginBottom = '4px';
+        startBtn.parentNode.insertBefore(storyBtn, startBtn.nextSibling);
+      }
+    }, 300);
+  </script>
+</body>
+</html>
+
 </body>
 </html>
