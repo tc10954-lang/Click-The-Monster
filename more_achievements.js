@@ -50,17 +50,24 @@ function saveExtraAch() {
   localStorage.setItem('monster_extra_ach_v1', JSON.stringify(extraAchUnlocked));
 }
 
+function getUnifiedTrophyCounts() {
+  const baseArr = JSON.parse(localStorage.getItem('monster_achievements') || '[]');
+  const baseCount = Array.isArray(baseArr) ? baseArr.length : 0;
+  const nativeHasExtra = typeof ACHIEVEMENT_LIST !== 'undefined' && ACHIEVEMENT_LIST.some(a => a.id === 'kills_50000');
+  const unlocked = nativeHasExtra ? baseCount : (baseCount + extraAchUnlocked.length);
+  const total = (typeof ACHIEVEMENT_LIST !== 'undefined' ? ACHIEVEMENT_LIST.length : 8) + (nativeHasExtra ? 0 : EXTRA_ACHIEVEMENTS.length);
+  return { unlocked, total };
+}
+
 function triggerExtraAchievementUnlock(id) {
   const item = EXTRA_ACHIEVEMENTS.find(a => a.id === id);
   if (!item) return;
 
-  // 1. Use native unlockAchievement if ACHIEVEMENT_LIST was global
   if (typeof ACHIEVEMENT_LIST !== 'undefined' && typeof unlockAchievement === 'function') {
     unlockAchievement(id);
     return;
   }
 
-  // 2. Fallback if ACHIEVEMENT_LIST was scoped with const inside achievements.js
   if (extraAchUnlocked.includes(id)) return;
   extraAchUnlocked.push(id);
   saveExtraAch();
@@ -71,7 +78,6 @@ function triggerExtraAchievementUnlock(id) {
   }
   if (typeof sfx !== 'undefined') sfx.powerup();
 
-  // Show native-style Trophy Toast Banner
   const toast = document.createElement('div');
   toast.style.cssText = `
     position: fixed; top: 72px; right: 18px; z-index: 9999;
@@ -92,8 +98,18 @@ function triggerExtraAchievementUnlock(id) {
   setTimeout(() => toast.remove(), 3800);
 }
 
-// Inject all 34 trophies directly into the original Achievements Modal list whenever it opens
+// Sync trophy cards AND update "8/8" counters on the Menu Button, Modal Header, and Career Screen
 setInterval(() => {
+  const { unlocked, total } = getUnifiedTrophyCounts();
+
+  // 1. Update any button, badge, or header displaying "X/8" trophies
+  document.querySelectorAll('button, span, div, h2, h3, p').forEach(el => {
+    if (el.children.length === 0 && /\d+\s*\/\s*8\b/.test(el.textContent)) {
+      el.textContent = el.textContent.replace(/\d+\s*\/\s*8\b/, `${unlocked}/${total}`);
+    }
+  });
+
+  // 2. Inject all 34 trophies into the original Achievements Modal list
   const achListEl = document.getElementById('achievements-list')
     || document.getElementById('achievement-list')
     || document.getElementById('trophy-list')
@@ -113,22 +129,22 @@ setInterval(() => {
 
   achListEl.dataset.extraInjected = '1';
   EXTRA_ACHIEVEMENTS.forEach(a => {
-    const unlocked = extraAchUnlocked.includes(a.id);
+    const isDone = extraAchUnlocked.includes(a.id);
     const card = document.createElement('div');
     card.style.cssText = `
-      background: ${unlocked ? 'rgba(255, 211, 42, 0.14)' : 'rgba(255, 255, 255, 0.04)'};
-      border: 1.5px solid ${unlocked ? '#ffd32a' : 'rgba(255, 255, 255, 0.1)'};
+      background: ${isDone ? 'rgba(255, 211, 42, 0.14)' : 'rgba(255, 255, 255, 0.04)'};
+      border: 1.5px solid ${isDone ? '#ffd32a' : 'rgba(255, 255, 255, 0.1)'};
       border-radius: 12px; padding: 10px; display: flex; align-items: center; gap: 10px;
-      opacity: ${unlocked ? '1' : '0.62'};
+      opacity: ${isDone ? '1' : '0.62'};
     `;
     card.innerHTML = `
       <div style="font-size: 1.6rem;">${a.icon}</div>
       <div style="flex: 1; text-align: left;">
-        <div style="font-weight: 900; font-size: 0.85rem; color: ${unlocked ? '#ffd32a' : '#fff'};">${a.name}</div>
+        <div style="font-weight: 900; font-size: 0.85rem; color: ${isDone ? '#ffd32a' : '#fff'};">${a.name}</div>
         <div style="font-size: 0.72rem; color: #a4b0be;">${a.desc}</div>
       </div>
-      <div style="font-weight: 900; font-size: 0.75rem; color: ${unlocked ? '#2ed573' : '#ffd32a'};">
-        ${unlocked ? '✅ DONE' : `+${a.reward.toLocaleString()} 🪙`}
+      <div style="font-weight: 900; font-size: 0.75rem; color: ${isDone ? '#2ed573' : '#ffd32a'};">
+        ${isDone ? '✅ DONE' : `+${a.reward.toLocaleString()} 🪙`}
       </div>
     `;
     achListEl.appendChild(card);
