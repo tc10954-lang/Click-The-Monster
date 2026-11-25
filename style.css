@@ -443,3 +443,10 @@ body.frozen .monster svg {
   transform: translateY(-2px);
   filter: brightness(1.1);
 }
+
+/* Hide default OS mouse everywhere when a Prestige Crosshair is active */
+body.has-custom-reticle,
+body.has-custom-reticle * {
+  cursor: none !important;
+}
+
