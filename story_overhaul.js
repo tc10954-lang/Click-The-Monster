@@ -25,17 +25,17 @@ function decorateStoryWorldScenery() {
 
   // 2. Scatter Atmospheric Props across all 5 Biomes
   const biomeProps = [
-    { zoneX:,   zoneY:,   icons: ['🏡', '🏮', '🌲', '🪨'], count: 22 },
-    { zoneX: [1040, 1950],zoneY:,  icons: ['🌲', '🌳', '🍄', '🕸️'], count: 42 },
-    { zoneX: [2040, 2940],zoneY:,  icons: ['🌵', '🦴', '🪨', '🏛️'], count: 34 },
-    { zoneX:,  zoneY:, icons: ['❄️', '🧊', '🏔️', '⛄'], count: 38 },
-    { zoneX: [1540, 2940],zoneY: [1140, 2140],icons: ['🌋', '🔥', '⛓️', '💀'], count: 40 }
+    { xMin: 40,   xMax: 940,  yMin: 40,   yMax: 840,  icons: ['🏡', '🏮', '🌲', '🪨'], count: 22 },
+    { xMin: 1040, xMax: 1940, yMin: 40,   yMax: 1040, icons: ['🌲', '🌳', '🍄', '🕸️'], count: 42 },
+    { xMin: 2040, xMax: 2940, yMin: 40,   yMax: 1040, icons: ['🌵', '🦴', '🪨', '🏛️'], count: 34 },
+    { xMin: 40,   xMax: 1440, yMin: 940,  yMax: 2140, icons: ['❄️', '🧊', '🏔️', '⛄'], count: 38 },
+    { xMin: 1540, xMax: 2940, yMin: 1140, yMax: 2140, icons: ['🌋', '🔥', '⛓️', '💀'], count: 40 }
   ];
 
   biomeProps.forEach(b => {
     for (let i = 0; i < b.count; i++) {
-      const px = b.zoneX[0] + Math.random() * (b.zoneX[1] - b.zoneX[0]);
-      const py = b.zoneY[0] + Math.random() * (b.zoneY[1] - b.zoneY[0]);
+      const px = b.xMin + Math.random() * (b.xMax - b.xMin);
+      const py = b.yMin + Math.random() * (b.yMax - b.yMin);
       const icon = b.icons.at(Math.floor(Math.random() * b.icons.length));
       const prop = document.createElement('div');
       prop.textContent = icon;
@@ -73,6 +73,7 @@ window.addEventListener('DOMContentLoaded', () => {
   }, 400);
 });
 // === END CHUNK 1 OF 2 ===
+
 // === START CHUNK 2 OF 2: story_overhaul.js ===
 function renderStoryMinimapAndQuest() {
   const overlay = document.getElementById('story-mode-overlay');
