@@ -106,8 +106,130 @@ window.addEventListener('DOMContentLoaded', () => {
     restartBtn.parentNode.insertBefore(copyBtn, restartBtn);
   }
 });
-  <script src="soundtrack.js"></script>
-  <script src="more_achievements.js"></script>
-  <script src="fever_hud.js"></script>
-</body>
+function updateFeverVisuals() {
+  const borderFx = document.getElementById('fever-border-fx');
+  const pill = document.getElementById('fever-pill');
+  if (!borderFx || !pill) return;
+
+  if (!isGameRunning) {
+    currentFeverTier = 0;
+    borderFx.className = '';
+    pill.style.display = 'none';
+    return;
+  }
+
+  const tier = getFeverTierForCombo(combo);
+  const mult = getFeverCoinMultiplier(combo);
+  currentFeverTier = tier;
+
+  borderFx.className = tier > 0 ? `tier-${tier}` : '';
+
+  if (tier === 0) {
+    pill.style.display = 'none';
+    return;
+  }
+
+  const tierConfigs = {
+    1: { text: `🔥 FEVER RUSH (${mult.toFixed(2)}x COINS)`, bg: 'rgba(255, 159, 67, 0.92)', color: '#07080c', border: '#fff' },
+    2: { text: `⚡ SUPER FEVER (${mult.toFixed(2)}x COINS + SHOCKWAVE)`, bg: 'rgba(0, 210, 211, 0.92)', color: '#07080c', border: '#ffd32a' },
+    3: { text: `☄️ BLAZING FEVER (${mult.toFixed(2)}x COINS + MEGA WAVE)`, bg: 'rgba(255, 71, 87, 0.94)', color: '#fff', border: '#ffd32a' },
+    4: { text: `🌌 GODLIKE OVERDRIVE (${mult.toFixed(2)}x COINS!)`, bg: 'linear-gradient(135deg, #ff9ff3, #a55eea)', color: '#07080c', border: '#fff' }
+  };
+
+  const cfg = tierConfigs[tier];
+  pill.style.display = 'block';
+  pill.style.background = cfg.bg;
+  pill.style.color = cfg.color;
+  pill.style.border = `2px solid ${cfg.border}`;
+  pill.textContent = cfg.text;
+}
+
+function updateLiveLoadoutDock() {
+  const dock = document.getElementById('live-loadout-dock');
+  if (!dock) return;
+
+  if (!isGameRunning) {
+    dock.style.display = 'none';
+    return;
+  }
+
+  const parts = [];
+
+  // 1. Equipped Battle Pets
+  if (typeof endgameState !== 'undefined' && typeof PET_CATALOG !== 'undefined' && endgameState.equippedPets.length > 0) {
+    const petIcons = endgameState.equippedPets
+      .map(id => PET_CATALOG.find(p => p.id === id)?.icon || '')
+      .filter(Boolean)
+      .join(' ');
+    if (petIcons) parts.push(`<span>🐾 ${petIcons}</span>`);
+  }
+
+  // 2. Equipped Artifact Relics
+  if (typeof relicState !== 'undefined' && typeof RELIC_CATALOG !== 'undefined' && relicState.equipped.length > 0) {
+    const relicIcons = relicState.equipped
+      .map(id => RELIC_CATALOG.find(r => r.id === id)?.icon || '')
+      .filter(Boolean)
+      .join(' ');
+    if (relicIcons) parts.push(`<span>🏺 ${relicIcons}</span>`);
+  }
+
+  // 3. Active Chaos Mutators
+  if (typeof activeMutators !== 'undefined' && typeof MUTATOR_LIST !== 'undefined') {
+    const mutIcons = MUTATOR_LIST
+      .filter(m => activeMutators[m.id])
+      .map(m => m.icon)
+      .join(' ');
+    if (mutIcons) parts.push(`<span style="color:#e056fd;">🎲 ${mutIcons}</span>`);
+  }
+
+  if (parts.length === 0) {
+    dock.style.display = 'none';
+  } else {
+    dock.style.display = 'flex';
+    dock.innerHTML = parts.join('<span style="opacity:0.35;">|</span>');
+  }
+}
+
+// Sync Fever Visuals & Live Loadout Dock smoothly every 150ms
+setInterval(() => {
+  updateFeverVisuals();
+  updateLiveLoadoutDock();
+}, 150);
+
+// Apply Escalating Fever Coin Multiplier (+0.25x every 25 combo!)
+if (typeof addCoinsAndXP === 'function') {
+  const _feverOrigCoins = addCoinsAndXP;
+  addCoinsAndXP = function(coinAmt, xpAmt) {
+    const mult = isGameRunning ? getFeverCoinMultiplier(combo) : 1;
+    _feverOrigCoins(Math.round(coinAmt * mult), xpAmt);
+  };
+}
+
+// Heavier Fever Shockwaves at Higher Combo Tiers (Tier 2 = 55px splash, Tier 3 = 85px, Tier 4 = 115px!)
+const _feverOrigClick = handleMonsterClick;
+handleMonsterClick = function(monster, clickX, clickY) {
+  _feverOrigClick(monster, clickX, clickY);
+
+  if (!isGameRunning || currentFeverTier < 2) return;
+  if (typeof contractState !== 'undefined' && contractState.active) return; // Keep Contracts fair!
+
+  const splashRadius = currentFeverTier === 2 ? 55 : (currentFeverTier === 3 ? 85 : 115);
+
+  const ring = document.createElement('div');
+  ring.className = 'splash-ring';
+  ring.style.width = `${splashRadius * 2}px`;
+  ring.style.height = `${splashRadius * 2}px`;
+  ring.style.left = `${clickX}px`;
+  ring.style.top = `${clickY}px`;
+  document.body.appendChild(ring);
+  setTimeout(() => ring.remove(), 300);
+
+  monsters.forEach(m => {
+    if (m === monster) return;
+    const dist = Math.hypot((m.x + m.size / 2) - clickX, (m.y + m.size / 2) - clickY);
+    if (dist <= splashRadius) {
+      _feverOrigClick(m, m.x + m.size / 2, m.y + m.size / 2);
+    }
+  });
+};
 
