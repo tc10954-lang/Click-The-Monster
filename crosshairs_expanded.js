@@ -9,7 +9,7 @@ function saveCrosshairArmory() {
   localStorage.setItem('monster_equipped_crosshair_v2', crosshairArmoryState.equipped);
 }
 
-var CROSSHAIR_CATALOG = [
+const PRESTIGE_CROSSHAIRS = [
   { id: 'default', name: 'Tactical Dot', unlockType: 'coin', cost: 0, reqText: 'Starter', trailColor: null,
     svg: `<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="3" fill="#fff"/><circle cx="20" cy="20" r="10" fill="none" stroke="#fff" stroke-width="1.5" opacity="0.6"/></svg>` },
   { id: 'cyber', name: 'Cyber Cross', unlockType: 'coin', cost: 500, reqText: '500 🪙', trailColor: '#00d2d3',
@@ -113,7 +113,7 @@ function renderCrosshairArmoryModal() {
   const coins = typeof shopState !== 'undefined' ? shopState.coins : 0;
   if (!grid) return;
 
-  grid.innerHTML = CROSSHAIR_CATALOG.map(ch => {
+  grid.innerHTML = PRESTIGE_CROSSHAIRS.map(ch => {
     const unlocked = isCrosshairUnlocked(ch);
     const equipped = crosshairArmoryState.equipped === ch.id;
     const canBuy = !unlocked && ch.unlockType === 'coin' && coins >= ch.cost;
@@ -158,7 +158,7 @@ function renderCrosshairArmoryModal() {
 
   grid.querySelectorAll('.ch-card-item').forEach(card => {
     card.addEventListener('click', () => {
-      const ch = CROSSHAIR_CATALOG.find(item => item.id === card.dataset.id);
+      const ch = PRESTIGE_CROSSHAIRS.find(item => item.id === card.dataset.id);
       if (!ch) return;
 
       if (isCrosshairUnlocked(ch)) {
@@ -201,7 +201,7 @@ let reticleHue = 0;
 let lastTrailTime = 0;
 
 function getEquippedCrosshair() {
-  return CROSSHAIR_CATALOG.find(c => c.id === crosshairArmoryState.equipped) || CROSSHAIR_CATALOG.at(0);
+  return PRESTIGE_CROSSHAIRS.find(c => c.id === crosshairArmoryState.equipped) || PRESTIGE_CROSSHAIRS.at(0);
 }
 
 function applyActiveCrosshairVisual() {
