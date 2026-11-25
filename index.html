@@ -85,7 +85,7 @@
           <div class="stat-val" id="final-combo">x1</div>
         </div>
       </div>
-<button class="action-btn" id="restart-btn">Return To Menu</button>
+      <button class="action-btn" id="restart-btn">Return To Menu</button>
     </div>
   </div>
 
@@ -126,5 +126,25 @@
   <script src="campaign.js"></script>
   <script src="menu_organizer.js"></script>
   <script src="combat_feel.js"></script>
+
+  <script>
+    setInterval(() => {
+      document.querySelectorAll('#weapon-bar button').forEach((btn, idx) => {
+        if (idx >= 3) {
+          const isSelected = btn.classList.contains('active') || btn.style.borderColor === 'rgb(0, 210, 211)';
+          btn.style.background = isSelected ? 'rgba(0, 210, 211, 0.22)' : 'rgba(15, 18, 28, 0.92)';
+          btn.style.color = '#fff';
+          btn.style.border = isSelected ? '2px solid #00d2d3' : '1.5px solid rgba(255, 255, 255, 0.18)';
+          btn.style.borderRadius = '10px';
+          btn.style.padding = '6px 10px';
+          btn.style.fontWeight = '800';
+          btn.style.fontSize = '0.78rem';
+          btn.style.cursor = 'pointer';
+        }
+      });
+      const belt = document.getElementById('live-potion-belt');
+      if (belt) belt.style.bottom = '86px';
+    }, 250);
+  </script>
 </body>
 </html>
