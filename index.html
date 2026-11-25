@@ -115,9 +115,8 @@
   <script src="skilltree.js"></script>
   <script src="contracts.js"></script>
   <script src="soundtrack.js"></script>
-  <script src="fever_hud.js"></script>
+   <script src="fever_hud.js"></script>
   <script src="mercenaries.js"></script>
-  <script src="superweapons.js"></script>
   <script src="shinies.js"></script>
   <script src="sandbox.js"></script>
   <script src="classes.js"></script>
@@ -126,39 +125,5 @@
   <script src="campaign.js"></script>
   <script src="menu_organizer.js"></script>
   <script src="combat_feel.js"></script>
-
-   <script>
-    setInterval(() => {
-      const refBtn = document.querySelector('#weapon-bar button');
-      document.querySelectorAll('#weapon-bar button').forEach((btn, idx) => {
-        if (idx >= 3) {
-          // Force all 3 super-weapons (4, 5, 6) to show cleanly
-          btn.style.display = 'inline-block';
-          if (refBtn && btn.className !== refBtn.className) {
-            btn.className = refBtn.className;
-          }
-          if (!btn.dataset.fixedLayout) {
-            const labels = [
-              '[4] 🪃 Boomerang<br><small>(35⚡)</small>',
-              '[5] 🗼 Turret<br><small>(50⚡)</small>',
-              '[6] ☄️ Beam<br><small>(80⚡)</small>'
-            ];
-            if (labels[idx - 3]) {
-              btn.innerHTML = labels[idx - 3];
-              btn.dataset.fixedLayout = '1';
-            }
-          }
-          // Remove the tall column override so it matches [2] and [3] naturally
-          btn.style.flexDirection = '';
-          btn.style.alignItems = '';
-          btn.style.justifyContent = '';
-          btn.style.minWidth = '115px';
-          btn.style.textAlign = 'center';
-        }
-      });
-      const belt = document.getElementById('live-potion-belt');
-      if (belt) belt.style.bottom = '82px';
-    }, 250);
-  </script>
 </body>
 </html>
