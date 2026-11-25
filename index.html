@@ -127,24 +127,44 @@
   <script src="menu_organizer.js"></script>
   <script src="combat_feel.js"></script>
 
-  <script>
+   <script>
     setInterval(() => {
+      const refBtn = document.querySelector('#weapon-bar button');
       document.querySelectorAll('#weapon-bar button').forEach((btn, idx) => {
         if (idx >= 3) {
+          if (refBtn && btn.className !== refBtn.className) {
+            btn.className = refBtn.className;
+          }
+          if (!btn.dataset.formatted) {
+            const raw = btn.textContent.trim();
+            const match = raw.match(/^(\d+)\s+(\S+)\s+(\d+⚡)\s+(.+)$/);
+            if (match) {
+              btn.innerHTML = `[${match[1]}] ${match[2]}<br>${match[4]}<br><small>(${match[3]})</small>`;
+              btn.dataset.formatted = '1';
+            }
+          }
           const isSelected = btn.classList.contains('active') || btn.style.borderColor === 'rgb(0, 210, 211)';
-          btn.style.background = isSelected ? 'rgba(0, 210, 211, 0.22)' : 'rgba(15, 18, 28, 0.92)';
-          btn.style.color = '#fff';
-          btn.style.border = isSelected ? '2px solid #00d2d3' : '1.5px solid rgba(255, 255, 255, 0.18)';
+          btn.style.display = 'flex';
+          btn.style.flexDirection = 'column';
+          btn.style.alignItems = 'center';
+          btn.style.justifyContent = 'center';
+          btn.style.textAlign = 'center';
+          btn.style.background = isSelected ? 'rgba(0, 210, 211, 0.22)' : 'rgba(255, 255, 255, 0.05)';
+          btn.style.color = isSelected ? '#fff' : '#ced6e0';
+          btn.style.border = isSelected ? '2px solid #00d2d3' : '2px solid rgba(255, 255, 255, 0.12)';
           btn.style.borderRadius = '10px';
-          btn.style.padding = '6px 10px';
+          btn.style.padding = '8px 10px';
           btn.style.fontWeight = '800';
           btn.style.fontSize = '0.78rem';
+          btn.style.lineHeight = '1.25';
           btn.style.cursor = 'pointer';
         }
       });
       const belt = document.getElementById('live-potion-belt');
-      if (belt) belt.style.bottom = '86px';
+      if (belt) belt.style.bottom = '96px';
     }, 250);
   </script>
 </body>
+</html>
+
 </html>
