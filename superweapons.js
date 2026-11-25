@@ -1,24 +1,24 @@
-// --- Endgame Super-Weapons (Keys 4, 5, 6: Boomerang, Tesla Turret & Ion Cannon) ---
-const superWeaponState = {
+// --- Super-Weapons Arsenal (,, Unlockables) ---
+const superWeaponsState = {
   unlocked: JSON.parse(localStorage.getItem('monster_super_weapons')) || []
 };
 
 const SUPER_WEAPONS = [
-  { id: 'boomerang', key: '4', icon: '🪃', name: 'Plasma Boomerang', energy: 35, cost: 75000,  color: '#00d2d3', desc: 'Ricochets around the arena slicing enemies for 3.5s' },
-  { id: 'turret',    key: '5', icon: '🌩️', name: 'Tesla Turret',     energy: 50, cost: 200000, color: '#54a0ff', desc: 'Deploys an auto-zapping lightning pylon for 6s' },
-  { id: 'ion',       key: '6', icon: '☄️', name: 'Orbital Ion Beam', energy: 80, cost: 500000, color: '#ff4757', desc: 'Fires a colossal vertical sky-laser (6 DMG)' }
+  { id: 'boomerang', key: '4', icon: '🪃', name: 'Plasma Boomerang', cost: 2500, energy: 35, desc: 'Pierces through enemies & curves back to cursor' },
+  { id: 'turret',    key: '5', icon: '🗼', name: 'Auto-Sentry Turret', cost: 4500, energy: 50, desc: 'Deploys a laser turret on the field for 10s' },
+  { id: 'beam',      key: '6', icon: '☄️', name: 'Orbital Omega Beam', cost: 8000, energy: 80, desc: 'Fires a screen-wide annihilation beam' }
 ];
 
 function saveSuperWeapons() {
-  localStorage.setItem('monster_super_weapons', JSON.stringify(superWeaponState.unlocked));
+  localStorage.setItem('monster_super_weapons', JSON.stringify(superWeaponsState.unlocked));
 }
 
 function isSuperWeaponUnlocked(id) {
-  return superWeaponState.unlocked.includes(id);
+  return superWeaponsState.unlocked.includes(id);
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-  // 1. Inject Super-Weapon Buttons matching the exact .wp-btn style of, [2], [3]
+  // 1. Inject Super-Weapon Buttons matching the exact .wp-btn style of,,
   const weaponBar = document.getElementById('weapon-bar');
   if (weaponBar) {
     SUPER_WEAPONS.forEach(sw => {
@@ -52,29 +52,27 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-
 function renderSuperWeaponsInShop() {
   const sec = document.getElementById('shop-superweapons-section');
-  if (!sec) return;
-  const playerCoins = typeof shopState !== 'undefined' ? shopState.coins : 0;
+  if (!sec || typeof shopState === 'undefined') return;
 
   sec.innerHTML = `
-    <div style="font-size:0.78rem; font-weight:900; color:#00d2d3; text-align:left; margin-bottom:6px;">
-      🚀 ENDGAME SUPER-WEAPONS (KEYS 4, 5, 6)
+    <div style="font-size: 0.78rem; font-weight: 900; color: #ff9f43; text-align: left; margin-bottom: 6px;">
+      🚀 HEAVY SUPER-WEAPONS (PERMANENT UNLOCKS)
     </div>
-    <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-bottom:12px; text-align:left;">
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: left;">
       ${SUPER_WEAPONS.map(sw => {
         const owned = isSuperWeaponUnlocked(sw.id);
-        const canAfford = !owned && playerCoins >= sw.cost;
+        const canAfford = !owned && shopState.coins >= sw.cost;
         return `
-          <div style="background:rgba(255,255,255,0.05); border:1px solid ${owned ? '#2ed573' : sw.color}; border-radius:10px; padding:8px;">
-            <div style="font-weight:900; font-size:0.82rem; color:${sw.color};">${sw.icon} ${sw.name}</div>
-            <div style="font-size:0.68rem; color:#ced6e0; margin:3px 0 6px 0;">${sw.desc}</div>
+          <div style="background: rgba(255,255,255,0.04); border: 1px solid ${owned ? '#2ed573' : 'rgba(255,255,255,0.12)'}; border-radius: 10px; padding: 8px;">
+            <div style="font-weight: 900; font-size: 0.82rem; color: #fff;">[${sw.key}] ${sw.icon} ${sw.name}</div>
+            <div style="font-size: 0.68rem; color: #a4b0be; margin: 3px 0 6px 0;">${sw.desc}</div>
             <button class="buy-sw-btn" data-id="${sw.id}" ${owned || !canAfford ? 'disabled' : ''} style="
-              width:100%; padding:6px; border:none; border-radius:6px; font-weight:900; font-size:0.74rem;
-              cursor:${canAfford ? 'pointer' : 'not-allowed'};
-              background:${owned ? '#2ed573' : (canAfford ? sw.color : 'rgba(255,255,255,0.08)')};
-              color:${owned || canAfford ? '#07080c' : '#747d8c'};
+              width: 100%; padding: 6px; border: none; border-radius: 6px; font-weight: 900; font-size: 0.74rem;
+              cursor: ${owned || !canAfford ? 'not-allowed' : 'pointer'};
+              background: ${owned ? 'rgba(46,213,115,0.2)' : (canAfford ? '#ff9f43' : 'rgba(255,255,255,0.08)')};
+              color: ${owned ? '#2ed573' : (canAfford ? '#07080c' : '#747d8c')};
             ">${owned ? '✅ UNLOCKED' : `Unlock (${sw.cost.toLocaleString()} 🪙)`}</button>
           </div>
         `;
@@ -85,38 +83,22 @@ function renderSuperWeaponsInShop() {
   sec.querySelectorAll('.buy-sw-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const sw = SUPER_WEAPONS.find(item => item.id === btn.dataset.id);
-      if (!sw || isSuperWeaponUnlocked(sw.id)) return;
-      if (typeof shopState !== 'undefined' && shopState.coins >= sw.cost) {
-        shopState.coins -= sw.cost;
-        saveShopData();
-        superWeaponState.unlocked.push(sw.id);
-        saveSuperWeapons();
-        const hudBtn = document.getElementById(`wp-${sw.id}`);
-        if (hudBtn) hudBtn.style.display = 'flex';
-        if (typeof sfx !== 'undefined') sfx.victory();
-        renderSuperWeaponsInShop();
-        if (typeof renderShop === 'function') renderShop();
-      }
+      if (!sw || isSuperWeaponUnlocked(sw.id) || shopState.coins < sw.cost) return;
+
+      shopState.coins -= sw.cost;
+      saveShopData();
+      superWeaponsState.unlocked.push(sw.id);
+      saveSuperWeapons();
+
+      const hudBtn = document.getElementById(`wp-${sw.id}`);
+      if (hudBtn) hudBtn.style.display = 'inline-block';
+
+      if (typeof sfx !== 'undefined') sfx.powerup();
+      renderSuperWeaponsInShop();
     });
   });
 }
 
-// Listen for Keys 4, 5, 6 during active gameplay
-window.addEventListener('keydown', (e) => {
-  if (!isGameRunning) return;
-  const sw = SUPER_WEAPONS.find(item => item.key === e.key);
-  if (sw && isSuperWeaponUnlocked(sw.id) && typeof selectWeapon === 'function') {
-    selectWeapon(sw.id);
-  }
-});
-// Hook shop modal opening so Super-Weapons stay synced with your live Coin balance
-if (typeof renderShop === 'function') {
-  const _swOrigRenderShop = renderShop;
-  renderShop = function() {
-    _swOrigRenderShop();
-    renderSuperWeaponsInShop();
-  };
-}
 
 // Fire Super-Weapons when clicking anywhere in the playfield while selected
 playField.addEventListener('mousedown', (e) => {
