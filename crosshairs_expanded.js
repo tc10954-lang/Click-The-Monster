@@ -78,35 +78,29 @@ function isCrosshairUnlocked(ch) {
   return false;
 }
 
-window.addEventListener('DOMContentLoaded', () => {
-  const mergeIntoExistingCrosshairArmory = () => {
-    const existingGrid = document.getElementById('ch-armory-grid')
-      || document.getElementById('crosshair-shop-grid')
-      || document.getElementById('crosshair-grid')
-      || [...document.querySelectorAll('div')].find(el =>
-        el.children.length >= 4 &&
-        el.children.length <= 6 &&
-        /RGB|Crosshair|Default/i.test(el.textContent) &&
-        el.querySelector('button')
-      );
+function upgradeAnyCrosshairGrid() {
+  // Find any visible container holding the old 5 crosshairs (Default, RGB Prestige, etc.)
+  const allGrids = [...document.querySelectorAll('div')].filter(el => {
+    if (el.dataset.upgraded19 || el.offsetParent === null) return false;
+    if (el.children.length < 4 || el.children.length > 7) return false;
+    const txt = el.textContent || '';
+    return (/RGB|Prestige/i.test(txt) && (/Default|Dot|Cross|Sniper|Neon/i.test(txt)));
+  });
 
-    if (existingGrid && !existingGrid.dataset.upgraded19) {
-      existingGrid.id = 'ch-armory-grid';
-      existingGrid.dataset.upgraded19 = '1';
-      existingGrid.style.display = 'grid';
-      existingGrid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(135px, 1fr))';
-      existingGrid.style.gap = '8px';
-      renderCrosshairArmoryModal();
-    }
-  };
+  allGrids.forEach(grid => {
+    grid.id = 'ch-armory-grid';
+    grid.dataset.upgraded19 = '1';
+    grid.style.display = 'grid';
+    grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(135px, 1fr))';
+    grid.style.gap = '8px';
+    grid.style.maxHeight = '58vh';
+    grid.style.overflowY = 'auto';
+    grid.style.paddingRight = '4px';
+    renderCrosshairArmoryModal();
+  });
+}
 
-  setInterval(() => {
-    const shopModal = document.getElementById('shop-modal');
-    if (shopModal && !shopModal.classList.contains('hidden')) {
-      mergeIntoExistingCrosshairArmory();
-    }
-  }, 300);
-});
+setInterval(upgradeAnyCrosshairGrid, 250);
 
 function renderCrosshairArmoryModal() {
   const grid = document.getElementById('ch-armory-grid');
@@ -195,6 +189,7 @@ function renderCrosshairArmoryModal() {
     });
   });
 }
+
 // --- Live Animated SVG Reticle & Cursor Trail Engine ---
 let customReticleEl = null;
 let reticleHue = 0;
