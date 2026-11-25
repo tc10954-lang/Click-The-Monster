@@ -9,7 +9,7 @@ function saveCrosshairArmory() {
   localStorage.setItem('monster_equipped_crosshair_v2', crosshairArmoryState.equipped);
 }
 
-const CROSSHAIR_CATALOG = [
+var CROSSHAIR_CATALOG = [
   { id: 'default', name: 'Tactical Dot', unlockType: 'coin', cost: 0, reqText: 'Starter', trailColor: null,
     svg: `<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="3" fill="#fff"/><circle cx="20" cy="20" r="10" fill="none" stroke="#fff" stroke-width="1.5" opacity="0.6"/></svg>` },
   { id: 'cyber', name: 'Cyber Cross', unlockType: 'coin', cost: 500, reqText: '500 🪙', trailColor: '#00d2d3',
