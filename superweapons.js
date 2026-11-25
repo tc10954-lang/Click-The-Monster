@@ -1,12 +1,12 @@
-// --- Super-Weapons Arsenal (,, Unlockables) ---
+// --- Super-Weapons Arsenal ([4], [5], [6] Unlockables) ---
 const superWeaponsState = {
   unlocked: JSON.parse(localStorage.getItem('monster_super_weapons')) || []
 };
 
 const SUPER_WEAPONS = [
-  { id: 'boomerang', key: '4', icon: '🪃', name: 'Plasma Boomerang', cost: 2500, energy: 35, desc: 'Pierces through enemies & curves back to cursor' },
-  { id: 'turret',    key: '5', icon: '🗼', name: 'Auto-Sentry Turret', cost: 4500, energy: 50, desc: 'Deploys a laser turret on the field for 10s' },
-  { id: 'beam',      key: '6', icon: '☄️', name: 'Orbital Omega Beam', cost: 8000, energy: 80, desc: 'Fires a screen-wide annihilation beam' }
+  { id: 'boomerang', key: '4', icon: '🪃', name: 'Boomerang', cost: 2500, energy: 35, desc: 'Pierces through enemies & curves back to cursor' },
+  { id: 'turret',    key: '5', icon: '🗼', name: 'Turret',    cost: 4500, energy: 50, desc: 'Deploys an auto-firing laser turret for 10s' },
+  { id: 'beam',      key: '6', icon: '☄️', name: 'Beam',      cost: 8000, energy: 80, desc: 'Fires a screen-wide annihilation beam' }
 ];
 
 function saveSuperWeapons() {
@@ -18,15 +18,23 @@ function isSuperWeaponUnlocked(id) {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-  // 1. Inject Super-Weapon Buttons matching the exact .wp-btn style of,,
+  // 1. Copy the exact button styling from [1] Blaster so [4], [5], [6] match 100%
   const weaponBar = document.getElementById('weapon-bar');
+  const blasterBtn = document.getElementById('wp-blaster');
+
   if (weaponBar) {
     SUPER_WEAPONS.forEach(sw => {
       const btn = document.createElement('button');
       btn.id = `wp-${sw.id}`;
-      btn.className = 'wp-btn';
-      btn.style.display = isSuperWeaponUnlocked(sw.id) ? 'inline-block' : 'none';
-      btn.innerHTML = `[${sw.key}] ${sw.icon} ${sw.name.split(' ').at(-1)} <small>(${sw.energy}⚡)</small>`;
+      btn.className = blasterBtn ? blasterBtn.className : 'wp-btn';
+      btn.style.cssText = `
+        display: ${isSuperWeaponUnlocked(sw.id) ? 'inline-flex' : 'none'};
+        flex-direction: column; align-items: center; justify-content: center;
+        background: rgba(15, 18, 28, 0.92); color: #fff;
+        border: 1.5px solid rgba(255, 255, 255, 0.18); border-radius: 10px;
+        padding: 6px 10px; font-weight: 800; font-size: 0.78rem; cursor: pointer;
+      `;
+      btn.innerHTML = `<span>[${sw.key}] ${sw.icon}</span><span>${sw.name}</span><small style="color:#ffd32a;">(${sw.energy}⚡)</small>`;
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         if (typeof selectWeapon === 'function') selectWeapon(sw.id);
@@ -35,10 +43,10 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Lift the Potion Belt ([Q] [E] [R]) slightly so it never overlaps the wider 6-weapon dock
+  // Lift the Potion Belt ([Q] [E] [R]) above the wider 6-weapon dock
   const potionBelt = document.getElementById('live-potion-belt');
   if (potionBelt) {
-    potionBelt.style.bottom = '74px';
+    potionBelt.style.bottom = '86px';
   }
 
   // 2. Add Super-Weapon Unlock Cards inside the Armory Shop Modal
@@ -91,156 +99,136 @@ function renderSuperWeaponsInShop() {
       saveSuperWeapons();
 
       const hudBtn = document.getElementById(`wp-${sw.id}`);
-      if (hudBtn) hudBtn.style.display = 'inline-block';
+      if (hudBtn) hudBtn.style.display = 'inline-flex';
 
       if (typeof sfx !== 'undefined') sfx.powerup();
       renderSuperWeaponsInShop();
     });
   });
 }
-
-
-// Fire Super-Weapons when clicking anywhere in the playfield while selected
-playField.addEventListener('mousedown', (e) => {
-  if (!isGameRunning || typeof currentWeapon === 'undefined') return;
-  const sw = SUPER_WEAPONS.find(item => item.id === currentWeapon);
-  if (!sw) return;
-
-  // Keep Mythic Contracts fair (only Blaster & Laser allowed)
-  if (typeof contractState !== 'undefined' && contractState.active) {
-    spawnFloatingText(e.clientX, e.clientY - 18, '🚫 SUPER-WEAPONS BANNED IN CONTRACTS!', '#ff4757');
-    return;
-  }
-
-  if (typeof energy === 'undefined' || energy < sw.energy) {
-    spawnFloatingText(e.clientX, e.clientY - 18, `NEED ${sw.energy}⚡ ENERGY!`, '#ff4757');
-    return;
-  }
-
-  energy -= sw.energy;
-  if (typeof updateEnergyUI === 'function') updateEnergyUI();
-
-  if (sw.id === 'boomerang') launchPlasmaBoomerang(e.clientX, e.clientY);
-  if (sw.id === 'turret')    deployTeslaTurret(e.clientX, e.clientY);
-  if (sw.id === 'ion')       fireOrbitalIonBeam(e.clientX);
+// --- Keyboard Hotkeys (4, 5, 6) & Weapon Selection Highlight ---
+window.addEventListener('keydown', (e) => {
+  if (!isGameRunning) return;
+  if (e.key === '4' && isSuperWeaponUnlocked('boomerang')) selectWeapon('boomerang');
+  if (e.key === '5' && isSuperWeaponUnlocked('turret')) selectWeapon('turret');
+  if (e.key === '6' && isSuperWeaponUnlocked('beam')) selectWeapon('beam');
 });
 
-// 1. 🪃 Plasma Boomerang: Ricochets off all 4 walls for 3.5 seconds slicing enemies
-function launchPlasmaBoomerang(startX, startY) {
+if (typeof selectWeapon === 'function') {
+  const _swOrigSelect = selectWeapon;
+  selectWeapon = function(w) {
+    _swOrigSelect(w);
+    SUPER_WEAPONS.forEach(sw => {
+      const btn = document.getElementById(`wp-${sw.id}`);
+      if (!btn) return;
+      const isSelected = (typeof activeWeapon !== 'undefined' && activeWeapon === sw.id);
+      btn.style.borderColor = isSelected ? '#00d2d3' : 'rgba(255, 255, 255, 0.18)';
+      btn.style.background = isSelected ? 'rgba(0, 210, 211, 0.22)' : 'rgba(15, 18, 28, 0.92)';
+      btn.style.boxShadow = isSelected ? '0 0 12px rgba(0, 210, 211, 0.45)' : 'none';
+    });
+  };
+}
+
+// --- Fire Super-Weapons on Field Click ---
+playField.addEventListener('mousedown', (e) => {
+  if (!isGameRunning || typeof activeWeapon === 'undefined') return;
+  if (typeof contractState !== 'undefined' && contractState.active && activeWeapon !== 'blaster') return;
+
+  if (activeWeapon === 'boomerang' && typeof spendEnergy === 'function' && spendEnergy(35)) {
+    firePlasmaBoomerang(e.clientX, e.clientY);
+  } else if (activeWeapon === 'turret' && typeof spendEnergy === 'function' && spendEnergy(50)) {
+    deployAutoTurret(e.clientX, e.clientY);
+  } else if (activeWeapon === 'beam' && typeof spendEnergy === 'function' && spendEnergy(80)) {
+    fireOrbitalBeam(e.clientY);
+  }
+});
+
+function firePlasmaBoomerang(tx, ty) {
   if (typeof sfx !== 'undefined') sfx.powerup();
   const disc = document.createElement('div');
   disc.textContent = '🪃';
-  disc.style.cssText = `
-    position: fixed; font-size: 2.2rem; pointer-events: none; z-index: 44;
-    filter: drop-shadow(0 0 14px #00d2d3); transform: translate(-50%, -50%);
-  `;
+  disc.style.cssText = 'position:fixed; font-size:2.2rem; pointer-events:none; z-index:48; filter:drop-shadow(0 0 10px #00d2d3);';
   document.body.appendChild(disc);
 
-  let bx = startX;
-  let by = startY;
-  const angle = Math.random() * Math.PI * 2;
-  let vx = Math.cos(angle) * 14;
-  let vy = Math.sin(angle) * 14;
-  let spin = 0;
-  let ticks = 0;
-  const hitCooldown = new Map();
+  let x = window.innerWidth / 2;
+  let y = window.innerHeight - 90;
+  const angle = Math.atan2(ty - y, tx - x);
+  let vx = Math.cos(angle) * 18;
+  let vy = Math.sin(angle) * 18;
+  let frames = 0;
 
   const loop = setInterval(() => {
-    ticks++;
-    if (!isGameRunning || ticks > 210) {
+    if (!isGameRunning || frames > 65) {
       clearInterval(loop);
       disc.remove();
       return;
     }
-
-    bx += vx;
-    by += vy;
-    spin += 28;
-
-    if (bx <= 20 || bx >= window.innerWidth - 20) vx *= -1;
-    if (by <= 75 || by >= window.innerHeight - 20) vy *= -1;
-
-    disc.style.left = `${bx}px`;
-    disc.style.top = `${by}px`;
-    disc.style.transform = `translate(-50%, -50%) rotate(${spin}deg)`;
+    frames++;
+    if (frames === 32) { vx = -vx; vy = -vy; }
+    x += vx;
+    y += vy;
+    disc.style.left = `${x - 18}px`;
+    disc.style.top = `${y - 18}px`;
+    disc.style.transform = `rotate(${frames * 28}deg)`;
 
     [...monsters].forEach(m => {
-      const mx = m.x + m.size / 2;
-      const my = m.y + m.size / 2;
-      if (Math.hypot(mx - bx, my - by) < m.size * 0.65 + 24) {
-        const lastHit = hitCooldown.get(m) || 0;
-        if (ticks - lastHit > 12) {
-          hitCooldown.set(m, ticks);
-          spawnParticles(mx, my, '#00d2d3', 8);
-          handleMonsterClick(m, mx, my);
-          if (monsters.includes(m)) handleMonsterClick(m, mx, my);
-        }
+      if (Math.hypot((m.x + m.size / 2) - x, (m.y + m.size / 2) - y) < m.size * 0.65) {
+        handleMonsterClick(m, x, y);
       }
     });
   }, 16);
 }
 
-// 2. 🌩️ Tesla Coil Turret: Automated lightning pylon for 6 seconds
-function deployTeslaTurret(tx, ty) {
+function deployAutoTurret(x, y) {
   if (typeof sfx !== 'undefined') sfx.powerup();
-  const pylon = document.createElement('div');
-  pylon.innerHTML = '🌩️';
-  pylon.style.cssText = `
-    position: fixed; left: ${tx}px; top: ${ty}px; transform: translate(-50%, -50%);
-    font-size: 2.3rem; pointer-events: none; z-index: 43;
-    filter: drop-shadow(0 0 18px #54a0ff);
+  const turret = document.createElement('div');
+  turret.textContent = '🗼';
+  turret.style.cssText = `
+    position: fixed; left: ${x - 20}px; top: ${y - 20}px; font-size: 2.2rem;
+    pointer-events: none; z-index: 46; filter: drop-shadow(0 0 12px #ff9f43);
   `;
-  document.body.appendChild(pylon);
-  spawnFloatingText(tx, ty - 24, '🌩️ TESLA TURRET ONLINE!', '#54a0ff');
+  document.body.appendChild(turret);
+  spawnFloatingText(x, y - 20, '🗼 SENTRY DEPLOYED!', '#ff9f43');
 
-  let zaps = 0;
-  const zapTimer = setInterval(() => {
-    zaps++;
-    if (!isGameRunning || zaps > 15) {
-      clearInterval(zapTimer);
-      pylon.remove();
+  let shots = 0;
+  const fireTimer = setInterval(() => {
+    if (!isGameRunning || shots >= 22) {
+      clearInterval(fireTimer);
+      turret.remove();
       return;
     }
-
-    const nearby = monsters
-      .filter(m => Math.hypot((m.x + m.size / 2) - tx, (m.y + m.size / 2) - ty) <= 220)
-      .slice(0, 3);
-
-    nearby.forEach(t => {
-      const mx = t.x + t.size / 2;
-      const my = t.y + t.size / 2;
-      spawnParticles(mx, my, '#54a0ff', 10);
-      handleMonsterClick(t, mx, my);
-    });
-  }, 400);
+    shots++;
+    if (monsters.length > 0) {
+      const target = monsters.at(Math.floor(Math.random() * monsters.length));
+      if (target) {
+        const tx = target.x + target.size / 2;
+        const ty = target.y + target.size / 2;
+        spawnParticles(tx, ty, '#ff9f43', 6);
+        handleMonsterClick(target, tx, ty);
+      }
+    }
+  }, 420);
 }
 
-// 3. ☄️ Orbital Ion Beam: Colossal vertical sky-laser column (6 DMG)
-function fireOrbitalIonBeam(beamX) {
+function fireOrbitalBeam(yPos) {
   if (typeof sfx !== 'undefined') sfx.bomb();
   triggerScreenShake();
 
   const beam = document.createElement('div');
   beam.style.cssText = `
-    position: fixed; top: 0; left: ${beamX - 75}px; width: 150px; height: 100vh;
-    background: linear-gradient(90deg, transparent 0%, rgba(255,71,87,0.45) 20%, #fff 50%, rgba(255,71,87,0.45) 80%, transparent 100%);
-    box-shadow: 0 0 55px #ff4757; pointer-events: none; z-index: 46;
-    transition: opacity 0.45s ease;
+    position: fixed; left: 0; top: ${yPos - 45}px; width: 100vw; height: 90px;
+    background: linear-gradient(180deg, transparent, #00d2d3, #fff, #00d2d3, transparent);
+    box-shadow: 0 0 35px #00d2d3; pointer-events: none; z-index: 49; opacity: 0.95;
   `;
   document.body.appendChild(beam);
-  spawnFloatingText(beamX, 140, '☄️ ORBITAL ION STRIKE!', '#ff4757');
+  setTimeout(() => beam.remove(), 350);
 
   [...monsters].forEach(m => {
-    const mx = m.x + m.size / 2;
-    if (Math.abs(mx - beamX) <= 95) {
-      const my = m.y + m.size / 2;
-      spawnParticles(mx, my, '#ff4757', 20);
-      for (let d = 0; d < 6; d++) {
-        if (monsters.includes(m)) handleMonsterClick(m, mx, my);
+    const cy = m.y + m.size / 2;
+    if (Math.abs(cy - yPos) <= 95) {
+      for (let d = 0; d < 4; d++) {
+        if (monsters.includes(m)) handleMonsterClick(m, m.x + m.size / 2, cy);
       }
     }
   });
-
-  setTimeout(() => { beam.style.opacity = '0'; }, 120);
-  setTimeout(() => { beam.remove(); }, 580);
 }
