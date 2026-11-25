@@ -131,17 +131,21 @@ let isTypingLine = false;
 let currentFullLine = '';
 
 window.addEventListener('DOMContentLoaded', () => {
-  // 1. Replace the old World Map button with "🗺️ Story Mode (Open World)"
-  setTimeout(() => {
-    const mapBtn = [...document.querySelectorAll('button')].find(b => /world map|campaign/i.test(b.textContent));
-    if (mapBtn) {
-      mapBtn.innerHTML = '🗺️ Story Mode (Open World)';
-      mapBtn.style.background = 'linear-gradient(135deg, #a55eea, #8854d0)';
-      const newBtn = mapBtn.cloneNode(true);
-      mapBtn.parentNode.replaceChild(newBtn, mapBtn);
-      newBtn.addEventListener('click', openStoryWorld);
-    }
-  }, 350);
+    // 1. Create the standalone "🗺️ Story Mode (Open World)" button directly on the Start Menu
+  const storyBtn = document.createElement('button');
+  storyBtn.className = 'action-btn';
+  storyBtn.innerHTML = '🗺️ Story Mode (Open World)';
+  storyBtn.style.cssText = 'background: linear-gradient(135deg, #a55eea, #8854d0); color: #fff;';
+  storyBtn.addEventListener('click', openStoryWorld);
+
+  const extrasGrid = document.getElementById('menu-extras-grid');
+  const startCard = document.querySelector('#start-screen .card');
+  if (extrasGrid) {
+    extrasGrid.appendChild(storyBtn);
+  } else if (startCard) {
+    startCard.appendChild(storyBtn);
+  }
+
 
   // 2. Build Fullscreen Open-World Story Mode Overlay
   const overlay = document.createElement('div');
