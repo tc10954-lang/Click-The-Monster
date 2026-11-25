@@ -96,10 +96,16 @@ function triggerExtraAchievementUnlock(id) {
 setInterval(() => {
   const achListEl = document.getElementById('achievements-list')
     || document.getElementById('achievement-list')
-    || document.getElementById('trophy-list');
+    || document.getElementById('trophy-list')
+    || [...document.querySelectorAll('div')].find(el =>
+      el.offsetParent !== null &&
+      el.children.length >= 6 &&
+      el.children.length <= 12 &&
+      /First Blood|Monster Slayer|Boss Slayer/i.test(el.textContent) &&
+      !el.querySelector('.action-btn')
+    );
 
   if (!achListEl || achListEl.dataset.extraInjected) return;
-  // If ACHIEVEMENT_LIST already accepted them natively, avoid duplicating
   if (typeof ACHIEVEMENT_LIST !== 'undefined' && ACHIEVEMENT_LIST.some(a => a.id === 'kills_50000')) {
     achListEl.dataset.extraInjected = '1';
     return;
@@ -127,7 +133,7 @@ setInterval(() => {
     `;
     achListEl.appendChild(card);
   });
-}, 300);
+}, 250);
 
 // --- Live & Retroactive Checker for All 34 New Achievements ---
 function checkExtraAchievements() {
