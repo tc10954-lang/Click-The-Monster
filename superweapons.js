@@ -18,25 +18,27 @@ function isSuperWeaponUnlocked(id) {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-  // 1. Inject Super-Weapon Buttons onto the Bottom Weapon Bar (Keys 4, 5, 6)
+  // 1. Inject Super-Weapon Buttons matching the exact .wp-btn style of, [2], [3]
   const weaponBar = document.getElementById('weapon-bar');
   if (weaponBar) {
     SUPER_WEAPONS.forEach(sw => {
       const btn = document.createElement('button');
       btn.id = `wp-${sw.id}`;
-      btn.className = 'weapon-btn';
-      btn.style.display = isSuperWeaponUnlocked(sw.id) ? 'flex' : 'none';
-      btn.innerHTML = `
-        <span class="key-hint">${sw.key}</span>
-        <span>${sw.icon} ${sw.name.split(' ').at(-1)}</span>
-        <span class="cost-tag">${sw.energy}⚡</span>
-      `;
+      btn.className = 'wp-btn';
+      btn.style.display = isSuperWeaponUnlocked(sw.id) ? 'inline-block' : 'none';
+      btn.innerHTML = `[${sw.key}] ${sw.icon} ${sw.name.split(' ').at(-1)} <small>(${sw.energy}⚡)</small>`;
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         if (typeof selectWeapon === 'function') selectWeapon(sw.id);
       });
       weaponBar.appendChild(btn);
     });
+  }
+
+  // Lift the Potion Belt ([Q] [E] [R]) slightly so it never overlaps the wider 6-weapon dock
+  const potionBelt = document.getElementById('live-potion-belt');
+  if (potionBelt) {
+    potionBelt.style.bottom = '74px';
   }
 
   // 2. Add Super-Weapon Unlock Cards inside the Armory Shop Modal
@@ -49,6 +51,7 @@ window.addEventListener('DOMContentLoaded', () => {
     renderSuperWeaponsInShop();
   }
 });
+
 
 function renderSuperWeaponsInShop() {
   const sec = document.getElementById('shop-superweapons-section');
