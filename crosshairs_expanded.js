@@ -78,29 +78,42 @@ function isCrosshairUnlocked(ch) {
   return false;
 }
 
-function upgradeAnyCrosshairGrid() {
-  // Find any visible container holding the old 5 crosshairs (Default, RGB Prestige, etc.)
-  const allGrids = [...document.querySelectorAll('div')].filter(el => {
-    if (el.dataset.upgraded19 || el.offsetParent === null) return false;
-    if (el.children.length < 4 || el.children.length > 7) return false;
-    const txt = el.textContent || '';
-    return (/RGB|Prestige/i.test(txt) && (/Default|Dot|Cross|Sniper|Neon/i.test(txt)));
-  });
+function upgradeExactCrosshairArmoryOnly() {
+  // 1. Check explicit Crosshair Armory IDs first
+  let targetGrid = document.getElementById('crosshair-grid')
+    || document.getElementById('crosshair-shop-grid')
+    || document.getElementById('crosshair-armory-grid');
 
-  allGrids.forEach(grid => {
-    grid.id = 'ch-armory-grid';
-    grid.dataset.upgraded19 = '1';
-    grid.style.display = 'grid';
-    grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(135px, 1fr))';
-    grid.style.gap = '8px';
-    grid.style.maxHeight = '58vh';
-    grid.style.overflowY = 'auto';
-    grid.style.paddingRight = '4px';
+  // 2. Otherwise find the heading that specifically says "Crosshair Armo(u)ry" and grab its grid sibling
+  if (!targetGrid) {
+    const heading = [...document.querySelectorAll('h2, h3, h4, div')].find(el =>
+      el.children.length === 0 &&
+      /crosshair\s*armou?ry/i.test(el.textContent.trim())
+    );
+    if (heading && heading.parentElement) {
+      targetGrid = [...heading.parentElement.querySelectorAll('div')].find(div =>
+        div !== heading &&
+        div.children.length >= 4 &&
+        div.children.length <= 6 &&
+        !div.querySelector('.action-btn, #close-career-btn, #close-shop-btn')
+      );
+    }
+  }
+
+  if (targetGrid && !targetGrid.dataset.upgraded19) {
+    targetGrid.id = 'ch-armory-grid';
+    targetGrid.dataset.upgraded19 = '1';
+    targetGrid.style.display = 'grid';
+    targetGrid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(135px, 1fr))';
+    targetGrid.style.gap = '8px';
+    targetGrid.style.maxHeight = '52vh';
+    targetGrid.style.overflowY = 'auto';
+    targetGrid.style.paddingRight = '4px';
     renderCrosshairArmoryModal();
-  });
+  }
 }
 
-setInterval(upgradeAnyCrosshairGrid, 250);
+setInterval(upgradeExactCrosshairArmoryOnly, 250);
 
 function renderCrosshairArmoryModal() {
   const grid = document.getElementById('ch-armory-grid');
@@ -189,6 +202,7 @@ function renderCrosshairArmoryModal() {
     });
   });
 }
+
 
 // --- Live Animated SVG Reticle & Cursor Trail Engine ---
 let customReticleEl = null;
