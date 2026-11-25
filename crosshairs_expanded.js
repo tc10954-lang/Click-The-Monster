@@ -220,7 +220,7 @@ function applyActiveCrosshairVisual() {
     customReticleEl.id = 'prestige-custom-reticle';
     customReticleEl.style.cssText = `
       position: fixed; width: 42px; height: 42px; pointer-events: none;
-      z-index: 9999; transform: translate(-50%, -50%); transition: transform 0.06s ease-out;
+      z-index: 99999; transform: translate(-50%, -50%); transition: transform 0.06s ease-out;
       display: none;
     `;
     document.body.appendChild(customReticleEl);
@@ -228,11 +228,7 @@ function applyActiveCrosshairVisual() {
 
   customReticleEl.innerHTML = ch.svg;
   customReticleEl.style.display = ch.id === 'default' ? 'none' : 'block';
-
-  const field = document.getElementById('play-field');
-  if (field) {
-    field.style.cursor = ch.id === 'default' ? 'crosshair' : 'none';
-  }
+  document.body.classList.toggle('has-custom-reticle', ch.id !== 'default');
 }
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -261,7 +257,7 @@ window.addEventListener('mousemove', (e) => {
     spark.style.cssText = `
       position: fixed; left: ${e.clientX}px; top: ${e.clientY}px;
       width: 6px; height: 6px; border-radius: 50%; background: ${color};
-      box-shadow: 0 0 8px ${color}; pointer-events: none; z-index: 9998;
+      box-shadow: 0 0 8px ${color}; pointer-events: none; z-index: 99998;
       transform: translate(-50%, -50%); transition: all 0.35s ease-out;
     `;
     document.body.appendChild(spark);
@@ -288,7 +284,7 @@ window.addEventListener('mousedown', (e) => {
     ring.style.cssText = `
       position: fixed; left: ${e.clientX}px; top: ${e.clientY}px;
       width: 12px; height: 12px; border: 2px solid ${color}; border-radius: 50%;
-      pointer-events: none; z-index: 9998; transform: translate(-50%, -50%);
+      pointer-events: none; z-index: 99998; transform: translate(-50%, -50%);
       transition: all 0.28s ease-out;
     `;
     document.body.appendChild(ring);
